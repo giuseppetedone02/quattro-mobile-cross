@@ -8,7 +8,12 @@
       "node": "22.13.0",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://uiuqdoaarjbwlcxrdyth.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oYHPGZlKhrI1u1pHfu-KEA_g37UQd16"
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oYHPGZlKhrI1u1pHfu-KEA_g37UQd16",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "311232080419-o4cukrteq8f7bqr0fphp5s455dsqengd.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "311232080419-clvkqi3q53ni0u38cqeliq6nqvkdos3f.apps.googleusercontent.com",
+        "GOOGLE_IOS_URL_SCHEME": "com.googleusercontent.apps.311232080419-clvkqi3q53ni0u38cqeliq6nqvkdos3f",
+        "GOOGLE_MAPS_ANDROID_KEY": "AIzaSyD56ApvCUGMset_UQhGRqPNpUoPbkNtCDQ",
+        "GOOGLE_MAPS_IOS_KEY": "AIzaSyD9MzOSmY6N1YKTxoVpSYq5lzsZZ9Zy9ok"
       }
     },
     "development": {
