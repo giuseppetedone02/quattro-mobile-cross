@@ -1,0 +1,92 @@
+# Aggiornamento OTA (expo-updates) sul canale production.
+#
+# COSA PUO' E COSA NON PUO' VIAGGIARE QUI.
+# Un update OTA sostituisce SOLO il bundle JavaScript e gli asset. Tutto cio'
+# che e' nativo -- una dipendenza nuova con codice nativo, un permesso in piu',
+# un plugin di config, un cambio di deploymentTarget, l'aggiornamento dell'SDK
+# Expo -- richiede un binario nuovo. Non e' una preferenza: runtimeVersion usa
+# la policy "fingerprint" (vedi app.config.ts), quindi un cambiamento nativo
+# produce una fingerprint diversa e i client con la vecchia impronta NON
+# scaricano l'update. Il che e' esattamente il comportamento desiderato:
+# l'alternativa e' un'app che si aggiorna e poi crasha all'avvio.
+#
+# E qui sta il punto che rende gli OTA importanti in questo progetto: con la
+# distribuzione via sideload, ogni binario nuovo su iOS significa che OGNI
+# utente deve riscaricare la IPA e RIFIRMARLA con il proprio Apple ID (e sui
+# Personal Team la firma vale 7 giorni). Un fix che passa per OTA arriva
+# invisibilmente; un fix che richiede un binario e' una procedura manuale
+# chiesta a ogni singola persona. Vale la pena chiedersi, prima di aggiungere
+# una dipendenza nativa, se ne valga la pena.
+name: OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Messaggio dell update (compare in eas update:list)'
+        required: true
+        type: string
+      branch:
+        description: 'Ramo git da pubblicare'
+        required: false
+        default: 'main'
+        type: string
+
+jobs:
+  publish:
+    name: eas update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: npm ci
+
+      # Un update che non compila e' un update che rompe l'app a tutti insieme:
+      # il typecheck qui non e' zelo, e' il solo controllo prima della
+      # pubblicazione.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npx jest --ci
+
+      # --environment e' OBBLIGATORIO da SDK 55: prima le variabili d'ambiente
+      # dell'update venivano prese dal processo, ora vanno risolte da un
+      # environment EAS dichiarato (development / preview / production).
+      # Senza il flag il comando esce con errore invece di indovinare, ed e'
+      # giusto: un update pubblicato con le variabili dell'ambiente sbagliato
+      # punterebbe tutti i client al progetto Supabase sbagliato.
+      #
+      # --channel production corrisponde al channel del profilo "sideload" in
+      # eas.json: e' quello dei binari distribuiti agli utenti.
+      - name: Pubblica l update
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+          EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
+        run: |
+          eas update \
+            --channel production \
+            --message "${{ inputs.message }}" \
+            --environment production \
+            --non-interactive
+
+      # Elenca gli update del canale: serve per sapere a quale tornare con
+      # "eas update:rollback" se questo si rivela sbagliato.
+      - name: Elenca gli update del canale
+        run: eas update:list --branch production --limit 5 --non-interactive

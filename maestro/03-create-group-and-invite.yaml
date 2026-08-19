@@ -1,0 +1,80 @@
+# Creazione di un gruppo condiviso e invito di una persona.
+#
+# Copre tre cose che la sola RLS non garantisce dal lato interfaccia:
+#  1. chi crea il gruppo ne diventa owner e lo vede subito nella lista;
+#  2. search_people non restituisce nulla sotto i 3 caratteri (la restrizione
+#     e' nella RPC, non nel client: se il client mostrasse risultati con 2
+#     caratteri vorrebbe dire che sta cercando da un'altra parte);
+#  3. il gruppo personale NON offre il pulsante di invito, perche'
+#     invite_to_group lo rifiuta con errore 22023 e un pulsante che porta a un
+#     errore certo e' un difetto di interfaccia.
+#
+# PREREQUISITO: sessione gia' attiva e un secondo utente registrato con
+# username "maestro_due".
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+- tapOn:
+    id: 'tab-groups'
+
+- tapOn:
+    id: 'group-create-fab'
+
+- tapOn:
+    id: 'group-create-name'
+- inputText: 'Cena del venerdi'
+- tapOn:
+    id: 'group-create-description'
+- inputText: 'Gruppo creato da Maestro'
+- tapOn:
+    id: 'group-create-submit'
+
+- extendedWaitUntil:
+    visible: 'Cena del venerdi'
+    timeout: 10000
+
+- tapOn: 'Cena del venerdi'
+- assertVisible:
+    id: 'group-detail-screen'
+
+# ---- Invito ----
+- tapOn:
+    id: 'group-invite-button'
+
+- tapOn:
+    id: 'invite-search-input'
+- inputText: 'ma'
+# Sotto i 3 caratteri la RPC non torna nulla: la lista deve restare vuota.
+- assertVisible:
+    id: 'invite-search-empty'
+
+- inputText: 'estro_due'
+- extendedWaitUntil:
+    visible:
+      id: 'invite-result-0'
+    timeout: 10000
+
+- tapOn:
+    id: 'invite-result-0'
+- tapOn:
+    id: 'invite-send-button'
+
+- extendedWaitUntil:
+    visible:
+      id: 'invite-sent-confirmation'
+    timeout: 10000
+
+# L'invito pendente deve comparire nella scheda membri: e' l'unico modo per
+# capire, dal telefono, che l'email e' partita.
+- back
+- tapOn:
+    id: 'group-members-tab'
+- assertVisible:
+    id: 'invite-pending-0'
+
+# ---- Il gruppo personale non si invita ----
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'I miei posti'
+- assertNotVisible:
+    id: 'group-invite-button'

@@ -1,0 +1,50 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "base": {
+      "node": "22.13.0",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://uiuqdoaarjbwlcxrdyth.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oYHPGZlKhrI1u1pHfu-KEA_g37UQd16"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "APP_VARIANT": "preview"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "sideload": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "production",
+      "env": {
+        "APP_VARIANT": "sideload"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {}
+}

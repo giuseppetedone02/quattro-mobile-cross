@@ -1,0 +1,74 @@
+# Registrazione con email e password, fino alla fine dell'onboarding.
+#
+# E' il primo flusso perche' e' anche il piu' fragile: tocca Supabase Auth, la
+# casella di posta e il trigger handle_new_user, che deve creare profilo e
+# gruppo personale. Se questo flusso passa, il database sta rispondendo.
+#
+# PREREQUISITO NON AUTOMATIZZABILE: con enable_confirmations = true l'utente
+# deve confermare l'indirizzo prima di entrare. In locale la mail finisce in
+# Inbucket (http://localhost:54324) e il link va aperto a mano, oppure si
+# disattiva temporaneamente la conferma. Il flusso si ferma quindi alla
+# schermata "controlla la posta" e riprende da un login.
+appId: com.giuseppetedone.quattro
+---
+# clearState azzera storage e sessione: senza, il secondo run parte da un
+# utente gia' loggato e non prova niente.
+- clearState
+- launchApp
+
+- assertVisible:
+    id: 'auth-signin-screen'
+
+- tapOn:
+    id: 'auth-goto-signup'
+
+- tapOn:
+    id: 'auth-signup-email'
+- inputText: 'maestro+${maestroRunId}@quattro.test'
+
+- tapOn:
+    id: 'auth-signup-password'
+- inputText: 'password-di-prova-1'
+
+- tapOn:
+    id: 'auth-signup-submit'
+
+# Da qui in avanti serve la conferma via email. La schermata di attesa e' il
+# punto in cui il flusso si interrompe in modo controllato.
+- extendedWaitUntil:
+    visible:
+      id: 'auth-check-inbox'
+    timeout: 15000
+
+# ---- Dopo la conferma manuale del link, l'app riapre sull'onboarding. ----
+# Le righe seguenti valgono quando le conferme sono disattivate in locale.
+
+- runFlow:
+    when:
+      visible:
+        id: 'onboarding-username-input'
+    commands:
+      - tapOn:
+          id: 'onboarding-username-input'
+      - inputText: 'maestro_test'
+
+      # username_available() risponde dal server: il pulsante si abilita solo
+      # dopo la risposta, quindi va atteso e non toccato subito.
+      - extendedWaitUntil:
+          visible:
+            id: 'onboarding-username-ok'
+          timeout: 10000
+
+      - tapOn:
+          id: 'onboarding-username-submit'
+
+      - tapOn:
+          id: 'onboarding-theme-sunset'
+      - tapOn:
+          id: 'onboarding-finish'
+
+      # Il gruppo personale lo crea il trigger, non l'app: se non compare, il
+      # problema e' in handle_new_user.
+      - assertVisible:
+          id: 'tab-groups'
+      - assertVisible: 'I miei posti'

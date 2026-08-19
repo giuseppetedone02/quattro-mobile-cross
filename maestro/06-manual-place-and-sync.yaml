@@ -1,0 +1,86 @@
+# Luogo inserito a mano e successivo collegamento alla scheda Google
+# (requisito 3.2.1).
+#
+# Il punto delicato non e' il collegamento: e' il RIFIUTO della sostituzione.
+# link_place_to_google(p_overwrite => false) collega il place_id ma NON tocca
+# nome e indirizzo scritti dall'utente, e lascia official_override_pending a
+# true. Il pulsante "usa i dati ufficiali" deve quindi RESTARE visibile: se
+# sparisse, l'utente che ha rifiutato una volta non potrebbe piu' cambiare
+# idea, e il dato ufficiale sarebbe irraggiungibile per sempre.
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+
+- tapOn:
+    id: 'place-add-fab'
+- tapOn:
+    id: 'place-add-manual'
+
+- tapOn:
+    id: 'place-manual-name'
+- inputText: 'Il Baffo'
+- tapOn:
+    id: 'place-manual-address'
+- inputText: 'Via Sconosciuta 1'
+- tapOn:
+    id: 'place-manual-cuisine'
+- inputText: 'Trattoria'
+- tapOn:
+    id: 'place-manual-submit'
+
+- extendedWaitUntil:
+    visible: 'Il Baffo'
+    timeout: 10000
+- tapOn: 'Il Baffo'
+
+# Un luogo manuale deve proporre il collegamento a Google.
+- assertVisible:
+    id: 'place-detail-sync-google-button'
+- tapOn:
+    id: 'place-detail-sync-google-button'
+
+- tapOn:
+    id: 'place-search-input'
+- inputText: 'il baffo'
+- extendedWaitUntil:
+    visible:
+      id: 'place-search-result-0'
+    timeout: 15000
+- tapOn:
+    id: 'place-search-result-0'
+
+# ---- Primo giro: l'utente RIFIUTA la sostituzione ----
+- assertVisible:
+    id: 'sync-confirm-dialog'
+- tapOn:
+    id: 'sync-keep-mine'
+
+- extendedWaitUntil:
+    visible:
+      id: 'place-detail-screen'
+    timeout: 10000
+# Il nome scritto a mano e' intatto.
+- assertVisible: 'Il Baffo'
+# Il collegamento c'e' comunque: la mappa e gli orari ora funzionano.
+- assertVisible:
+    id: 'place-detail-google-linked-badge'
+# E il pulsante resta, perche' official_override_pending e' true.
+- assertVisible:
+    id: 'place-detail-use-official-button'
+
+# ---- Secondo giro: l'utente ACCETTA ----
+- tapOn:
+    id: 'place-detail-use-official-button'
+- tapOn:
+    id: 'sync-use-official'
+
+- extendedWaitUntil:
+    visible:
+      id: 'place-detail-screen'
+    timeout: 10000
+# Ora il pulsante deve scomparire: official_override_pending e' false.
+- assertNotVisible:
+    id: 'place-detail-use-official-button'

@@ -1,0 +1,105 @@
+# Controlli obbligatori su ogni push e ogni pull request.
+#
+# Nessuno step ha continue-on-error, e in particolare non ce l'ha il job dei
+# test RLS. Motivo: la chiave con cui l'app parla con PostgREST vive nel bundle
+# ed e' quindi pubblica; le policy RLS sono l'unica cosa che separa i dati di un
+# gruppo da quelli di un altro. Una regressione nelle policy non fa crashare
+# nulla e non produce nessun log: restituisce solo piu' righe del dovuto. Se
+# quel job potesse fallire senza bloccare la pipeline, la pipeline non
+# servirebbe a niente.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Un push nuovo sullo stesso ramo annulla il run precedente.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Fissata alla stessa versione di eas.json > build.base.node. Se le
+          # due divergono si ottiene il caso peggiore: CI verde e build EAS
+          # rotta, o viceversa.
+          node-version: '22.13'
+          cache: npm
+
+      # npm ci e non npm install: rispetta package-lock.json alla lettera e
+      # fallisce se il lock e' fuori sincrono con package.json.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # --max-warnings=0: un warning tollerato diventa cento warning.
+      - name: Lint
+        run: npx eslint . --max-warnings=0
+
+      - name: Test
+        run: npx jest --ci
+
+  database:
+    name: RLS (pgTAP) e sincronia dei tipi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Avvia lo stack locale (Postgres + Auth + Storage + PostgREST) e applica
+      # tutto supabase/migrations in ordine. Se una migrazione non si applica,
+      # qui si vede: e' anche il test che le migrazioni siano valide.
+      - name: Avvia Supabase in locale
+        run: supabase start
+
+      # BLOCCANTE. 53 asserzioni su isolamento fra gruppi, vincoli, RPC.
+      #
+      # Il file e' nominato esplicitamente e non si passa la cartella: il
+      # runner (pg_prove) eseguirebbe OGNI .sql sotto supabase/tests, e
+      # _local_stub.sql non e' un test -- e' l'emulazione di Supabase per chi
+      # gira la suite su un Postgres nudo. Un file senza output TAP viene
+      # contato come fallimento. Aggiungendo un test nuovo, aggiungilo qui.
+      - name: Test RLS
+        run: supabase test db supabase/tests/rls.test.sql
+
+      # Perche' questo step esiste: lib/database.types.ts e' cio' che il
+      # compilatore usa per sapere com'e' fatto il database. Se una migrazione
+      # aggiunge una colonna e nessuno rigenera il file, TypeScript continua a
+      # compilare felice contro uno schema che non esiste piu', e l'errore
+      # arriva a runtime sul telefono di un utente sotto forma di undefined.
+      # Rigenerare qui e pretendere zero differenze e' il solo meccanismo che
+      # impedisce a schema e client di divergere in silenzio.
+      #
+      # Se questo step e' rosso: esegui in locale
+      #   supabase start && npm run db:types
+      # e committa il file generato.
+      - name: Rigenera i tipi del database
+        run: npm run db:types
+
+      - name: I tipi devono essere in sincrono con le migrazioni
+        run: git diff --exit-code -- lib/database.types.ts
+
+      - name: Ferma Supabase
+        if: always()
+        run: supabase stop --no-backup

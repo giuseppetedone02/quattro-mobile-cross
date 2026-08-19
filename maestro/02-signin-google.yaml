@@ -1,0 +1,66 @@
+# Accesso con Google (@react-native-google-signin/google-signin).
+#
+# PERCHE' QUESTO FLUSSO E' PARZIALMENTE MANUALE.
+# Il selettore account di Google e' interfaccia di sistema, non della nostra
+# app: Maestro puo' toccarlo su Android (ha accesso alla view hierarchy
+# completa) ma il comportamento dipende dagli account configurati
+# sull'emulatore, e su iOS il foglio di sistema non e' pilotabile. Su un
+# emulatore senza account Google il flusso si ferma al selettore vuoto: e'
+# atteso, non un difetto del flusso.
+#
+# Cio' che questo flusso verifica davvero e' il PERCORSO POST-LOGIN: dopo un
+# accesso Google l'utente non ha username (il trigger crea il profilo con
+# username NULL, vedi handle_new_user), quindi DEVE finire sull'onboarding e
+# non nella home. E' il caso che si sbaglia piu' facilmente.
+appId: com.giuseppetedone.quattro
+---
+- clearState
+- launchApp
+
+- assertVisible:
+    id: 'auth-signin-screen'
+
+- tapOn:
+    id: 'auth-google-button'
+
+# Selettore account di sistema. Su un emulatore con un account configurato
+# Maestro riesce a toccare la prima voce.
+- runFlow:
+    when:
+      visible: 'Scegli un account'
+    commands:
+      - tapOn:
+          index: 0
+          text: '.*@gmail\.com'
+
+- extendedWaitUntil:
+    visible:
+      id: 'onboarding-username-input'
+    timeout: 30000
+
+# Il vincolo username_format rifiuta meno di 3 caratteri: qui si verifica che
+# il messaggio arrivi dal server e non da una regex duplicata nel client.
+- tapOn:
+    id: 'onboarding-username-input'
+- inputText: 'ab'
+- assertVisible:
+    id: 'onboarding-username-error'
+
+- tapOn:
+    id: 'onboarding-username-input'
+- eraseText
+- inputText: 'maestro_google'
+- extendedWaitUntil:
+    visible:
+      id: 'onboarding-username-ok'
+    timeout: 10000
+- tapOn:
+    id: 'onboarding-username-submit'
+
+- tapOn:
+    id: 'onboarding-theme-sunset'
+- tapOn:
+    id: 'onboarding-finish'
+
+- assertVisible:
+    id: 'tab-groups'

@@ -1,0 +1,94 @@
+# La recensione in quattro passi: Location, Servizio, Menu, Conto.
+#
+# E' il cuore dell'app. Quattro punteggi da 1 a 10, media calcolata dal
+# database (colonna generata "overall", non dal client: se il numero mostrato
+# non coincide con quello del server, e' il client che sta sbagliando).
+#
+# Il flusso verifica anche che NON si possa saltare un passo senza voto: i
+# quattro punteggi sono NOT NULL nello schema, quindi un invio incompleto
+# fallirebbe con un errore incomprensibile invece di un messaggio.
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+- tapOn:
+    id: 'place-row-0'
+
+- tapOn:
+    id: 'place-detail-review-button'
+
+# ---- Passo 1: Location ----
+- assertVisible:
+    id: 'review-step-location'
+# Senza voto non si va avanti.
+- assertVisible:
+    id: 'review-next-disabled'
+- tapOn:
+    id: 'review-score-8'
+- tapOn:
+    id: 'review-next'
+
+# ---- Passo 2: Servizio ----
+- assertVisible:
+    id: 'review-step-service'
+- tapOn:
+    id: 'review-score-6'
+- tapOn:
+    id: 'review-next'
+
+# ---- Passo 3: Menu ----
+- assertVisible:
+    id: 'review-step-menu'
+- tapOn:
+    id: 'review-score-9'
+- tapOn:
+    id: 'review-next'
+
+# Indietro e avanti: il voto gia' dato deve essere ancora selezionato.
+- tapOn:
+    id: 'review-back'
+- assertVisible:
+    id: 'review-score-6-selected'
+- tapOn:
+    id: 'review-next'
+
+# ---- Passo 4: Conto ----
+- assertVisible:
+    id: 'review-step-value'
+- tapOn:
+    id: 'review-score-7'
+
+# Conto e coperti sono opzionali, ma se ci sono la vista calcola il costo a
+# persona: 5600 centesimi diviso 2 = 2800.
+- tapOn:
+    id: 'review-bill-total'
+- inputText: '56,00'
+- tapOn:
+    id: 'review-party-size'
+- inputText: '2'
+- tapOn:
+    id: 'review-comment'
+- inputText: 'Pizza ottima, servizio lento.'
+
+- tapOn:
+    id: 'review-submit'
+
+- extendedWaitUntil:
+    visible:
+      id: 'review-card-0'
+    timeout: 15000
+
+# (8 + 6 + 9 + 7) / 4 = 7.50, calcolato dalla colonna generata.
+- assertVisible: '7.5'
+- assertVisible:
+    id: 'place-scores-dial'
+
+# Una seconda recensione dello stesso luogo nello stesso gruppo e' vietata
+# dal vincolo unique (group_id, place_id, author_id): il pulsante deve
+# diventare "Modifica".
+- assertVisible:
+    id: 'place-detail-edit-review-button'
+- assertNotVisible:
+    id: 'place-detail-review-button'

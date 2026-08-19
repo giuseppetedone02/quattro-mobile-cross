@@ -1,0 +1,84 @@
+# APK universale Android, profilo "sideload".
+#
+# Manuale (workflow_dispatch) e automatico su tag "v*". Non gira su ogni push:
+# una build EAS consuma minuti del piano e non serve a ogni commit.
+#
+# ATTENZIONE ALLA KEYSTORE DI RELEASE.
+# Fuori dal Play Store la keystore E' l'identita' dell'applicazione, per
+# sempre. Android accetta un aggiornamento solo se e' firmato con la stessa
+# chiave del pacchetto gia' installato: se la keystore si perde, non esiste
+# nessuna procedura di recupero e nessun supporto da contattare. L'unica strada
+# e' pubblicare un package name diverso e chiedere a ogni utente di
+# disinstallare la versione precedente, perdendo i dati locali.
+# Non esistendo il Play App Signing (che sul Play Store terrebbe una copia
+# della chiave di firma), la copia di sicurezza e' responsabilita' nostra:
+#   eas credentials -p android      # scarica la keystore
+# e conservare il file .jks CON la password FUORI da EAS e fuori da questo
+# repository (password manager, disco cifrato offline).
+name: Android APK (sideload)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Profilo EAS da compilare'
+        required: true
+        default: 'sideload'
+        type: choice
+        options:
+          - sideload
+          - preview
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: EAS build APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: npm ci
+
+      # --local compila sul runner invece che sui server EAS: non consuma la
+      # coda del piano gratuito e lascia l'artefatto sul disco del runner.
+      # --non-interactive e' obbligatorio in CI: senza, EAS si blocca a
+      # chiedere conferma sulla keystore.
+      - name: Build APK
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+          GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+          GOOGLE_IOS_URL_SCHEME: ${{ secrets.GOOGLE_IOS_URL_SCHEME }}
+          EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
+        run: |
+          eas build \
+            --platform android \
+            --profile "${{ inputs.profile || 'sideload' }}" \
+            --local \
+            --non-interactive \
+            --output "${{ github.workspace }}/quattro.apk"
+
+      # L'APK e' un artefatto: si scarica dalla pagina del run e si installa
+      # sul telefono. Nessuna pubblicazione automatica.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quattro-android-apk
+          path: quattro.apk
+          # 90 giorni e' il massimo su repository pubblici.
+          retention-days: 90
+          if-no-files-found: error

@@ -1,0 +1,112 @@
+# Configurazione dello stack Supabase locale ("supabase start").
+# Non descrive il progetto remoto: quello si configura dal pannello. Serve a
+# far girare in locale la stessa cosa che gira in produzione, altrimenti i test
+# RLS verificano un database diverso da quello vero.
+
+project_id = "quattro"
+
+[api]
+enabled = true
+port = 54321
+# Solo "public": "graphql_public" e "storage" non servono al client, e ogni
+# schema esposto e' superficie di attacco in piu'.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+# Tetto alle righe restituite da una singola richiesta PostgREST. Il client
+# pagina sempre; questo limite e' la rete di sicurezza contro un .select()
+# senza .range() su una tabella cresciuta.
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Deve corrispondere alla versione del progetto remoto, altrimenti "db diff"
+# genera migrazioni che in produzione non si applicano. 17 e' il default dei
+# progetti Supabase nuovi; lo schema e' compatibile da PostgreSQL 15 in su
+# (security_invoker sulle viste esiste da 15).
+major_version = 17
+
+[db.pooler]
+enabled = true
+port = 54329
+# "transaction" e' la modalita' giusta per un client mobile: connessioni brevi
+# e numerose. In "session" ogni client tiene una connessione occupata per tutta
+# la sessione e il pool si esaurisce con poche decine di utenti.
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[studio]
+enabled = true
+port = 54323
+
+# Cattura tutte le email inviate in locale invece di spedirle davvero.
+# Interfaccia su http://localhost:54324
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# 10 MiB: le foto passano da lib/photos.ts, che le ricomprime in WebP a 1600px
+# (circa 200 KB). Il limite serve contro l'upload di un originale non
+# processato, non contro l'uso normale.
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+# site_url e' lo schema dell'app: non esiste un sito web a cui tornare.
+site_url = "quattro://"
+# Ogni URL a cui Auth puo' rimandare dopo una conferma o un OAuth deve essere
+# elencato qui, altrimenti il redirect viene scartato in silenzio e l'utente
+# resta sulla pagina del browser.
+additional_redirect_urls = [
+  "quattro://",
+  "quattro://auth/callback",
+  "quattro://invite/*",
+  "http://localhost:8081",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Registrazione aperta: gli inviti si accettano da un account proprio.
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+# Conferma dell'indirizzo obbligatoria: gli inviti si mandano per email, e un
+# indirizzo non confermato rende l'invito inconsegnabile.
+enable_confirmations = true
+# Impedisce di cambiare email confermando solo dal nuovo indirizzo.
+double_confirm_changes = true
+secure_password_change = true
+max_frequency = "60s"
+otp_length = 6
+otp_expiry = 3600
+
+# In locale le email restano in Inbucket. In produzione le manda l'Edge
+# Function send-auth-email tramite Resend: il servizio integrato di Supabase
+# fa 2 messaggi all'ora e solo verso i membri del team del progetto.
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+# Google Sign-In. In locale i valori arrivano dall'ambiente: non si scrivono
+# qui, il file e' versionato.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+redirect_uri = ""
+skip_nonce_check = false
+
+[analytics]
+enabled = false
+
+[edge_runtime]
+enabled = true
+# "oneshot" ricarica la funzione a ogni richiesta: in sviluppo e' cio' che si
+# vuole, perche' un salvataggio si vede subito.
+policy = "oneshot"
+inspector_port = 8083

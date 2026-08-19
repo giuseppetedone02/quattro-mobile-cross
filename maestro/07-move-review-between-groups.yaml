@@ -1,0 +1,74 @@
+# Spostamento di una recensione da un gruppo a un altro (requisito 2.2.1).
+#
+# La RPC move_review fa tre cose in una transazione: verifica che la
+# recensione sia dell'utente, inserisce il luogo in group_places nel gruppo di
+# destinazione (senza, la FK composita rifiuterebbe l'update) e sposta la
+# recensione. Dal lato interfaccia questo significa che DOPO lo spostamento la
+# recensione non deve piu' comparire nel gruppo di partenza: se ci restasse,
+# la cache di TanStack Query non e' stata invalidata sulle chiavi di entrambi
+# i gruppi, ed e' il difetto piu' probabile in questo percorso.
+#
+# Verifica anche il caso vietato: una recensione dello stesso luogo gia'
+# presente nel gruppo di destinazione fa fallire la RPC con 23505, e l'utente
+# deve leggere un messaggio comprensibile, non un codice.
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+- tapOn:
+    id: 'place-row-0'
+
+- tapOn:
+    id: 'review-card-0'
+- tapOn:
+    id: 'review-move-button'
+
+- assertVisible:
+    id: 'review-move-sheet'
+# Il gruppo corrente non deve essere fra le destinazioni.
+- assertNotVisible:
+    id: 'review-move-target-current'
+- tapOn: 'I miei posti'
+- tapOn:
+    id: 'review-move-confirm'
+
+- extendedWaitUntil:
+    visible:
+      id: 'review-move-done'
+    timeout: 15000
+
+# Nel gruppo di partenza la recensione non c'e' piu'.
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+- tapOn:
+    id: 'place-row-0'
+- assertNotVisible:
+    id: 'review-card-0'
+
+# Nel gruppo personale il luogo e' comparso da solo (lo ha inserito la RPC in
+# group_places) e la recensione e' la' dentro.
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'I miei posti'
+- assertVisible:
+    id: 'place-row-0'
+- tapOn:
+    id: 'place-row-0'
+- assertVisible:
+    id: 'review-card-0'
+
+# Riportarla indietro deve funzionare: non ci sono recensioni duplicate.
+- tapOn:
+    id: 'review-card-0'
+- tapOn:
+    id: 'review-move-button'
+- tapOn: 'Cena del venerdi'
+- tapOn:
+    id: 'review-move-confirm'
+- extendedWaitUntil:
+    visible:
+      id: 'review-move-done'
+    timeout: 15000

@@ -1,0 +1,69 @@
+# Aggiunta di un luogo cercandolo su Google Places.
+#
+# Il percorso attraversa TRE Edge Function: places-search mentre si digita,
+# places-details all'apertura della scheda, places-photo per ogni foto.
+# Nessuna di queste chiamate deve partire dall'app verso
+# places.googleapis.com: se il flusso funziona senza rete verso Google ma con
+# Supabase raggiungibile, il proxy sta facendo il suo lavoro.
+#
+# La soglia dei 3 caratteri e' imposta lato server (guardia di costo: ogni
+# richiesta di autocomplete e' fatturata anche se la sessione viene
+# abbandonata). Il flusso la verifica dal lato utente.
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+
+- tapOn:
+    id: 'place-add-fab'
+- tapOn:
+    id: 'place-search-google'
+
+- tapOn:
+    id: 'place-search-input'
+- inputText: 'da'
+# Due caratteri: la funzione risponde con lista vuota, non con un errore.
+- assertVisible:
+    id: 'place-search-empty'
+
+- inputText: ' peppino'
+- extendedWaitUntil:
+    visible:
+      id: 'place-search-result-0'
+    timeout: 15000
+
+- tapOn:
+    id: 'place-search-result-0'
+
+# Scheda dettaglio: arriva da places-details, con field mask fissa lato server.
+- extendedWaitUntil:
+    visible:
+      id: 'place-detail-screen'
+    timeout: 15000
+- assertVisible:
+    id: 'place-detail-name'
+- assertVisible:
+    id: 'place-detail-address'
+
+# Le foto si caricano in lazy: Google risponde 429 se ne si chiedono troppe
+# insieme, quindi la griglia deve mostrare le prime e caricare il resto
+# scorrendo. Se qui comparisse un errore, il client sta usando un Promise.all.
+- assertVisible:
+    id: 'place-photo-0'
+
+- tapOn:
+    id: 'place-add-to-group-button'
+
+- extendedWaitUntil:
+    visible:
+      id: 'place-detail-in-group-badge'
+    timeout: 10000
+
+# Il luogo deve comparire nella lista del gruppo.
+- back
+- assertVisible:
+    id: 'group-places-list'
+- assertVisible:
+    id: 'place-row-0'

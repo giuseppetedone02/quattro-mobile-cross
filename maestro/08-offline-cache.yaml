@@ -1,0 +1,93 @@
+# Uso senza rete: la cache persistita deve mostrare gli ultimi dati letti.
+#
+# PERCHE' CONTA. Un ristorante lo si cerca stando fuori, spesso in un locale
+# con una connessione pessima. Una schermata di errore al posto della lista dei
+# posti rende l'app inutile proprio quando serve. TanStack Query e' persistito
+# su AsyncStorage (lib/queryClient.ts), quindi cio' che e' stato letto una
+# volta resta leggibile.
+#
+# COSA DEVE E COSA NON DEVE FUNZIONARE OFFLINE:
+#  - lista gruppi, lista luoghi, recensioni gia' scaricate: SI, dalla cache.
+#  - ricerca su Google Places: NO, e' una chiamata di rete. Deve comparire un
+#    messaggio, non uno spinner infinito.
+#  - una recensione scritta offline viene applicata in modo ottimistico e
+#    ripristinata al ritorno dell'errore: l'utente deve vedere che non e'
+#    stata salvata, non credere il contrario.
+#
+# NOTA SULL'ESECUZIONE: setAirplaneMode funziona su Android. Su iOS Maestro non
+# puo' cambiare lo stato della rete; su iOS questo flusso va eseguito
+# disattivando la rete a mano, oppure va escluso dalla suite.
+appId: com.giuseppetedone.quattro
+---
+- launchApp
+
+# Primo giro CON rete: serve a popolare la cache. Senza questo passaggio il
+# test verificherebbe solo il comportamento a cache vuota.
+- tapOn:
+    id: 'tab-groups'
+- extendedWaitUntil:
+    visible:
+      id: 'groups-list'
+    timeout: 15000
+- tapOn: 'Cena del venerdi'
+- extendedWaitUntil:
+    visible:
+      id: 'group-places-list'
+    timeout: 15000
+- tapOn:
+    id: 'place-row-0'
+- extendedWaitUntil:
+    visible:
+      id: 'place-detail-screen'
+    timeout: 15000
+
+# ---- Rete via ----
+- setAirplaneMode: enabled
+- stopApp
+- launchApp
+
+# Il banner deve comparire: l'utente deve sapere PERCHE' i dati potrebbero
+# essere vecchi.
+- extendedWaitUntil:
+    visible:
+      id: 'offline-banner'
+    timeout: 15000
+
+# I dati in cache restano leggibili.
+- tapOn:
+    id: 'tab-groups'
+- assertVisible:
+    id: 'groups-list'
+- assertVisible: 'Cena del venerdi'
+- tapOn: 'Cena del venerdi'
+- assertVisible:
+    id: 'place-row-0'
+- tapOn:
+    id: 'place-row-0'
+- assertVisible:
+    id: 'place-detail-screen'
+- assertVisible:
+    id: 'review-card-0'
+
+# La ricerca su Google, che e' rete pura, deve dire chiaramente che non si puo'.
+- tapOn:
+    id: 'tab-groups'
+- tapOn: 'Cena del venerdi'
+- tapOn:
+    id: 'place-add-fab'
+- tapOn:
+    id: 'place-search-google'
+- tapOn:
+    id: 'place-search-input'
+- inputText: 'peppino'
+- extendedWaitUntil:
+    visible:
+      id: 'place-search-offline'
+    timeout: 15000
+
+# ---- Rete di nuovo ----
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    notVisible:
+      id: 'offline-banner'
+    timeout: 30000

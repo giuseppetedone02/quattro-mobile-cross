@@ -1,0 +1,121 @@
+# IPA iOS NON FIRMATA, da firmare poi con SideStore / Sideloadly.
+#
+# PERCHE' QUESTO WORKFLOW ESISTE INVECE DI UNA BUILD EAS.
+# EAS Build non puo' produrre una IPA non firmata. I profili di distribuzione
+# sono due: "store" e "internal", e entrambi richiedono credenziali Apple
+# valide (Apple ID a pagamento, certificato di distribuzione, provisioning
+# profile). L'unica build che EAS fa senza credenziali e' quella per il
+# simulatore, che produce una .app x86_64/arm64-simulator NON installabile su
+# un dispositivo fisico. Quindi per chi non ha un Apple Developer Program da
+# 99 USD l'anno la strada e' una sola: archiviare con xcodebuild disattivando
+# la firma, impacchettare la .app in una IPA, e lasciare che sia l'utente a
+# firmarla con il proprio Apple ID gratuito tramite SideStore, AltStore o
+# Sideloadly.
+#
+# COSA COMPORTA PER L'UTENTE FINALE.
+#  - un Apple ID gratuito (Personal Team) firma per SETTE GIORNI: dopo, l'app
+#    non si apre piu' e va rifirmata. SideStore lo fa in automatico se il
+#    telefono e' sulla stessa rete del computer con SideServer attivo.
+#  - massimo 3 app sideloadate contemporaneamente per Apple ID gratuito.
+#  - NIENTE notifiche push: richiedono l'entitlement aps-environment, che un
+#    Personal Team non concede. Per questo l'app non le usa affatto.
+#  - niente App Groups, niente iCloud, niente associated-domains (ed e' il
+#    motivo per cui i deep link sono solo su schema quattro:// e gli inviti
+#    hanno un fallback web).
+#
+# I runner macOS sono GRATUITI sui repository pubblici. Su repository privati
+# sono fatturati con un moltiplicatore 10x rispetto a Linux: e' la ragione per
+# cui questo workflow e' solo manuale.
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: xcodebuild archive senza firma
+    # macos-26 monta Xcode 26, richiesto da Expo SDK 57 / React Native 0.86.
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # prebuild genera la cartella ios/ dal config. --clean la rigenera da
+      # zero: l'unico modo di essere sicuri che il risultato dipenda solo da
+      # app.config.ts e non da residui di una build precedente.
+      - name: Expo prebuild
+        env:
+          APP_VARIANT: sideload
+          GOOGLE_MAPS_IOS_KEY: ${{ secrets.GOOGLE_MAPS_IOS_KEY }}
+          GOOGLE_IOS_URL_SCHEME: ${{ secrets.GOOGLE_IOS_URL_SCHEME }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Pod install
+        working-directory: ios
+        run: pod install --repo-update
+
+      # Il nome dello scheme e del workspace li decide prebuild dal campo
+      # "name" di app.config.ts. Vengono letti invece di essere scritti a mano
+      # perche' cambiano se cambia il nome dell'app.
+      - name: Individua workspace e scheme
+        id: xc
+        working-directory: ios
+        run: |
+          WORKSPACE="$(ls -d *.xcworkspace | head -n 1)"
+          SCHEME="${WORKSPACE%.xcworkspace}"
+          echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+
+      # I tre flag di disattivazione della firma devono esserci TUTTI E TRE.
+      # CODE_SIGNING_ALLOWED=NO da solo non basta: alcuni target dei pod
+      # leggono CODE_SIGNING_REQUIRED, e senza CODE_SIGN_IDENTITY="" xcodebuild
+      # continua a cercare un certificato che sul runner non esiste.
+      - name: Archive senza firma
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -workspace "${{ steps.xc.outputs.workspace }}" \
+            -scheme "${{ steps.xc.outputs.scheme }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Quattro.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            ONLY_ACTIVE_ARCH=NO \
+            | xcpretty || xcodebuild -version
+
+      # Una IPA e' uno zip con la .app dentro una cartella "Payload".
+      # Nient'altro: nessun manifest, nessuna firma. Sono i firmatori
+      # (SideStore, Sideloadly) a inserire il resto.
+      - name: Impacchetta la IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="$(ls -d "$RUNNER_TEMP"/Quattro.xcarchive/Products/Applications/*.app | head -n 1)"
+          mkdir -p "$RUNNER_TEMP/pkg/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/pkg/Payload/"
+          cd "$RUNNER_TEMP/pkg"
+          zip -qry "$GITHUB_WORKSPACE/quattro-unsigned.ipa" Payload
+          ls -lh "$GITHUB_WORKSPACE/quattro-unsigned.ipa"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quattro-ios-unsigned-ipa
+          path: quattro-unsigned.ipa
+          retention-days: 90
+          if-no-files-found: error
