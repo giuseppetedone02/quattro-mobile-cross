@@ -70,7 +70,16 @@ export function EmptyState({ icon = 'list', title, message, actionLabel, onActio
         </Text>
       ) : null}
       {actionLabel && onAction ? (
-        <Button label={actionLabel} onPress={onAction} style={{ marginTop: theme.spacing[2] }} />
+        // Button di default si allinea a se stesso con alignSelf:'flex-start'
+        // (per stare a sinistra dentro un form): qui il contenitore e' invece
+        // centrato (alignItems:'center'), quindi va sovrascritto o il
+        // pulsante resta appiccicato al margine sinistro nonostante il resto
+        // dello stato vuoto sia centrato.
+        <Button
+          label={actionLabel}
+          onPress={onAction}
+          style={{ marginTop: theme.spacing[2], alignSelf: 'center' }}
+        />
       ) : null}
     </View>
   );

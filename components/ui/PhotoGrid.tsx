@@ -76,7 +76,20 @@ export function PhotoPicker({
 
   return (
     <View style={{ gap: theme.spacing[2] }}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2] }}>
+      {/* Con max=1 (foto singola di gruppo/profilo) c'e' sempre una sola
+          tessera: senza centrarla resta appiccicata a sinistra con tutto lo
+          spazio vuoto a destra, come se fosse storta. Con piu' foto (fino a
+          MAX_PHOTOS_PER_REVIEW) resta a sinistra: e' una griglia, non un
+          singolo pulsante, e l'allineamento a sinistra e' quello naturale
+          man mano che si aggiungono foto. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: theme.spacing[2],
+          justifyContent: max === 1 ? 'center' : 'flex-start',
+        }}
+      >
         {photos.map((p, i) => (
           <View key={p.id} style={{ width: size, height: size }}>
             <Image

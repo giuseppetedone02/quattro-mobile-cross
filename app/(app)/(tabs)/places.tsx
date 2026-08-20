@@ -128,7 +128,11 @@ export default function PlacesTab() {
         <FlashList
           data={filtered}
           keyExtractor={(item: PlaceListItem) => item.place.id}
-          contentContainerStyle={{ paddingHorizontal: theme.spacing[4], paddingBottom: theme.spacing[7] }}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing[4],
+            paddingTop: theme.spacing[3],
+            paddingBottom: theme.spacing[7],
+          }}
           ItemSeparatorComponent={() => <View style={{ height: theme.spacing[3] }} />}
           refreshControl={
             <RefreshControl

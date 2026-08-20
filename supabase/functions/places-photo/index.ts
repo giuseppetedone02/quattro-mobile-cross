@@ -55,16 +55,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (pre) return pre;
 
   try {
-    if (req.method !== 'GET') throw new HttpError(405, 'Metodo non consentito.');
+    // POST con corpo JSON, come le altre due Edge Function di questo
+    // progetto: supabase.functions.invoke() del client manda SEMPRE il
+    // corpo, mai una query string. La versione precedente leggeva
+    // photoName/maxWidthPx da url.searchParams e richiedeva GET: il client
+    // non li ha mai mandati li', quindi ogni richiesta falliva con 400
+    // ("Manca il photoName").
+    if (req.method !== 'POST') throw new HttpError(405, 'Metodo non consentito.');
 
     await requireUser(req);
 
-    const url = new URL(req.url);
-    const photoName = (url.searchParams.get('photoName') ?? '').trim();
+    const raw = (await req.json().catch(() => ({}))) as {
+      photoName?: unknown;
+      maxWidthPx?: unknown;
+    };
+    const photoName = typeof raw.photoName === 'string' ? raw.photoName.trim() : '';
     if (!photoName) throw new HttpError(400, 'Manca il photoName.');
     if (!isValidPhotoName(photoName)) throw new HttpError(400, 'photoName non valido.');
 
-    const maxWidthPx = clampWidth(url.searchParams.get('maxWidthPx'));
+    const maxWidthPx = clampWidth(
+      typeof raw.maxWidthPx === 'number' ? String(raw.maxWidthPx) : null,
+    );
 
     const apiKey = Deno.env.get('GOOGLE_PLACES_KEY');
     if (!apiKey) throw new HttpError(500, 'Foto non disponibili in questo momento.');

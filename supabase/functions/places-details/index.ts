@@ -201,17 +201,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (pre) return pre;
 
   try {
-    if (req.method !== 'GET' && req.method !== 'POST') {
+    // POST con corpo JSON, non GET con query string: e' cosi' che
+    // supabase.functions.invoke() del client (vedi features/places/api/
+    // googlePlaces.ts) manda SEMPRE la richiesta, per tutte e tre le Edge
+    // Function di questo progetto. La versione precedente leggeva placeId e
+    // refreshCoords da url.searchParams: il client non li ha mai messi li',
+    // quindi placeId arrivava sempre vuoto e la richiesta falliva con 400
+    // ("Manca il placeId") ad ogni tap su un risultato di ricerca.
+    if (req.method !== 'POST') {
       throw new HttpError(405, 'Metodo non consentito.');
     }
 
     const caller = await requireUser(req);
 
-    const url = new URL(req.url);
-    const placeId = (url.searchParams.get('placeId') ?? '').trim();
+    const body = (await req.json().catch(() => ({}))) as {
+      placeId?: unknown;
+      refreshCoords?: unknown;
+    };
+    const placeId = typeof body.placeId === 'string' ? body.placeId.trim() : '';
     if (!placeId) throw new HttpError(400, 'Manca il placeId.');
 
-    const wantsCoords = url.searchParams.get('refreshCoords') === '1';
+    const wantsCoords = body.refreshCoords === true || body.refreshCoords === '1';
 
     const cached = await readCache(placeId);
     const raw = cached ?? (await fetchFromGoogle(placeId));
