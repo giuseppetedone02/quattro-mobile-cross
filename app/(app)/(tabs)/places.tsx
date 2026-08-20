@@ -101,22 +101,29 @@ export default function PlacesTab() {
           <PlaceRowSkeleton />
         </View>
       ) : places.error && (places.data?.length ?? 0) === 0 ? (
-        <ErrorState
-          message={friendlyError(places.error).message}
-          onRetry={() => void places.refetch()}
-        />
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ErrorState
+            message={friendlyError(places.error).message}
+            onRetry={() => void places.refetch()}
+          />
+        </View>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={query ? 'search' : 'pin'}
-          title={query ? 'Nessun risultato' : 'Ancora nessun posto'}
-          message={
-            query
-              ? 'Prova con un altro nome, o con la via.'
-              : 'Aggiungi il primo posto dove hai mangiato e dagli un voto.'
-          }
-          actionLabel={query ? undefined : 'Aggiungi un posto'}
-          onAction={query ? undefined : () => router.push('/place/add')}
-        />
+        // Centrato nello spazio rimasto sotto la ricerca, non subito
+        // attaccato ad essa: altrimenti lo stato vuoto si vede "in alto"
+        // con un vuoto sotto invece che al centro dello schermo.
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <EmptyState
+            icon={query ? 'search' : 'pin'}
+            title={query ? 'Nessun risultato' : 'Ancora nessun posto'}
+            message={
+              query
+                ? 'Prova con un altro nome, o con la via.'
+                : 'Aggiungi il primo posto dove hai mangiato e dagli un voto.'
+            }
+            actionLabel={query ? undefined : 'Aggiungi un posto'}
+            onAction={query ? undefined : () => router.push('/place/add')}
+          />
+        </View>
       ) : (
         <FlashList
           data={filtered}

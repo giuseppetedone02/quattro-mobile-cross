@@ -92,7 +92,7 @@ export default function AddPlace() {
 
       {!showForm ? (
         <View style={{ gap: theme.spacing[4] }}>
-          <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+          <View style={{ flexDirection: 'row', gap: theme.spacing[2], justifyContent: 'center' }}>
             <Chip
               label="Cerca su Google"
               icon="search"
@@ -114,6 +114,13 @@ export default function AddPlace() {
             accessibilityLabel="Cerca un locale su Google Maps"
             loading={search.isSearching}
             autoFocus
+          />
+
+          <SearchField
+            value={search.locality}
+            onChangeText={search.setLocality}
+            placeholder="Localita (es. Bari, Vicenza, Torino)"
+            accessibilityLabel="Filtra per localita"
           />
 
           {search.error ? <ErrorState compact message={search.error} /> : null}

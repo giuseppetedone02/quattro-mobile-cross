@@ -40,32 +40,38 @@ export type GooglePlaceDetails = {
  *  perche' le sessioni abbandonate si pagano a richiesta. */
 export const MIN_QUERY_LENGTH = 3;
 
-/** Forme grezze della Places API (New), come arrivano dalla Edge Function. */
+// Le forme qui sotto sono quelle GIA' RESTITUITE dalle nostre Edge Function
+// (places-search, places-details), non quelle grezze di Google: le Edge
+// Function le appiattiscono apposta cosi' il client non deve conoscere la
+// struttura di Google (vedi "normalise()" in supabase/functions/places-details
+// e la mappa in places-search). Usare qui la forma grezza di Google -- come
+// faceva questo file prima -- legge campi che non esistono mai nella
+// risposta reale (raw.suggestions invece di raw.results, raw.location
+// invece di raw.details.location): il risultato e' che la ricerca ritorna
+// sempre vuota, silenziosamente, anche quando l'Edge Function risponde bene.
 type RawSearchResponse = {
-  suggestions?: {
-    placePrediction?: {
-      placeId?: string;
-      structuredFormat?: {
-        mainText?: { text?: string };
-        secondaryText?: { text?: string };
-      };
-      text?: { text?: string };
-    };
+  results?: {
+    placeId?: string;
+    primaryText?: string;
+    secondaryText?: string;
   }[];
 };
 
-type RawDetailsResponse = {
-  id?: string;
-  displayName?: { text?: string };
-  formattedAddress?: string;
-  location?: { latitude?: number; longitude?: number };
-  rating?: number;
-  userRatingCount?: number;
-  priceLevel?: string;
-  regularOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
-  photos?: { name?: string }[];
-  googleMapsUri?: string;
+type RawDetails = {
+  placeId?: string;
+  displayName?: string | null;
+  formattedAddress?: string | null;
+  location?: { lat?: number; lng?: number } | null;
+  rating?: number | null;
+  userRatingCount?: number | null;
+  priceLevel?: string | null;
+  openNow?: boolean | null;
+  weekdayDescriptions?: string[] | null;
+  googleMapsUri?: string | null;
+  photoNames?: string[] | null;
 };
+
+type RawDetailsResponse = { details?: RawDetails; cached?: boolean };
 
 type RawPhotoResponse = { photoUri?: string };
 
@@ -97,26 +103,36 @@ export async function searchPlaces(
   query: string,
   sessionToken: string,
   near?: { latitude: number; longitude: number },
+  /** Testo libero di localita' (citta', paese) scritto dall'utente per
+   *  restringere la ricerca: non e' un bias geografico (richiederebbe
+   *  geocoding), e' semplicemente unito al testo cercato -- Google Places
+   *  gestisce bene "nome + citta'" nello stesso input. */
+  locality?: string,
 ): Promise<GooglePrediction[]> {
   const trimmed = query.trim();
   if (trimmed.length < MIN_QUERY_LENGTH) return [];
 
+  const trimmedLocality = locality?.trim();
+  const input = trimmedLocality ? `${trimmed} ${trimmedLocality}` : trimmed;
+
+  // Nomi di campo che l'Edge Function places-search legge davvero (vedi
+  // parseBody() li': "input", "lat"/"lng" piatti, non "query"/"near"
+  // annidato). Con i nomi sbagliati la funzione riceveva sempre input vuoto
+  // e rispondeva {results: []} -- una ricerca silenziosamente sempre vuota,
+  // indistinguibile a occhio da "nessun risultato".
   const raw = await invokeFunction<RawSearchResponse>('places-search', {
-    query: trimmed,
+    input,
     sessionToken,
-    ...(near ? { near } : {}),
+    ...(near ? { lat: near.latitude, lng: near.longitude } : {}),
   });
 
-  return (raw.suggestions ?? []).flatMap((suggestion) => {
-    const prediction = suggestion.placePrediction;
-    if (!prediction?.placeId) return [];
-    const main = prediction.structuredFormat?.mainText?.text ?? prediction.text?.text ?? '';
-    if (!main) return [];
+  return (raw.results ?? []).flatMap((result) => {
+    if (!result.placeId || !result.primaryText) return [];
     return [
       {
-        placeId: prediction.placeId,
-        mainText: main,
-        secondaryText: prediction.structuredFormat?.secondaryText?.text ?? '',
+        placeId: result.placeId,
+        mainText: result.primaryText,
+        secondaryText: result.secondaryText ?? '',
       },
     ];
   });
@@ -128,26 +144,24 @@ export async function searchPlaces(
  */
 export async function getPlaceDetails(placeId: string): Promise<GooglePlaceDetails> {
   const raw = await invokeFunction<RawDetailsResponse>('places-details', { placeId });
+  const details = raw.details;
 
-  const lat = raw.location?.latitude;
-  const lng = raw.location?.longitude;
+  const lat = details?.location?.lat;
+  const lng = details?.location?.lng;
 
   return {
-    placeId: raw.id ?? placeId,
-    displayName: raw.displayName?.text ?? '',
-    formattedAddress: raw.formattedAddress ?? '',
+    placeId: details?.placeId ?? placeId,
+    displayName: details?.displayName ?? '',
+    formattedAddress: details?.formattedAddress ?? '',
     location:
       typeof lat === 'number' && typeof lng === 'number' ? { latitude: lat, longitude: lng } : null,
-    rating: typeof raw.rating === 'number' ? raw.rating : null,
-    userRatingCount: typeof raw.userRatingCount === 'number' ? raw.userRatingCount : null,
-    priceLevel: raw.priceLevel ?? null,
-    openNow:
-      typeof raw.regularOpeningHours?.openNow === 'boolean'
-        ? raw.regularOpeningHours.openNow
-        : null,
-    weekdayDescriptions: raw.regularOpeningHours?.weekdayDescriptions ?? null,
-    googleMapsUri: raw.googleMapsUri ?? null,
-    photoNames: (raw.photos ?? []).flatMap((p) => (p.name ? [p.name] : [])),
+    rating: typeof details?.rating === 'number' ? details.rating : null,
+    userRatingCount: typeof details?.userRatingCount === 'number' ? details.userRatingCount : null,
+    priceLevel: details?.priceLevel ?? null,
+    openNow: typeof details?.openNow === 'boolean' ? details.openNow : null,
+    weekdayDescriptions: details?.weekdayDescriptions ?? null,
+    googleMapsUri: details?.googleMapsUri ?? null,
+    photoNames: details?.photoNames ?? [],
   };
 }
 

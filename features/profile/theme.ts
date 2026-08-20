@@ -35,9 +35,6 @@ function isPreference(value: string): value is ThemePreference {
 /**
  * Tollerante per scelta: ogni pezzo si convalida da solo, cosi' un valore
  * mezzo valido ("ocean:qualcosa") conserva almeno la famiglia.
- * NOTA: charcoal esiste solo in scuro, ma la preferenza si conserva comunque
- * cosi' com'e' -- e' buildTheme() a forzare la modalita' scura, e cambiare
- * famiglia non deve far perdere all'utente la scelta "chiaro".
  */
 export function parseTheme(value: string | null | undefined): ParsedTheme {
   const fallback: ParsedTheme = {

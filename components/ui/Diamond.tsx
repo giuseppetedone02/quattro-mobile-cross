@@ -148,14 +148,19 @@ export function Diamond({
   );
 }
 
-/** Etichette dei quattro criteri attorno al diamante hero. */
+/**
+ * Etichette dei quattro criteri attorno al piatto hero, una per angolo --
+ * coerenti con i vertici di diamondPoints(), ora anch'essi sugli angoli
+ * (alto-destra, basso-destra, basso-sinistra, alto-sinistra) invece che sui
+ * lati come nel vecchio rombo.
+ */
 function DiamondLabels({ box }: { box: number }) {
   const theme = useTheme();
   const positions = [
-    { top: 0, left: 0, right: 0, align: 'center' as const },
-    { top: box / 2 - 8, right: 0, align: 'right' as const },
-    { bottom: 0, left: 0, right: 0, align: 'center' as const },
-    { top: box / 2 - 8, left: 0, align: 'left' as const },
+    { top: 0, right: 0, align: 'right' as const },
+    { bottom: 0, right: 0, align: 'right' as const },
+    { bottom: 0, left: 0, align: 'left' as const },
+    { top: 0, left: 0, align: 'left' as const },
   ];
 
   return (

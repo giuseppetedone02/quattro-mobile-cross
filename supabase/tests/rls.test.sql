@@ -56,7 +56,7 @@ create extension if not exists pgtap with schema extensions;
 begin;
 set local search_path to public, extensions, pg_temp;
 
-select plan(53);
+select plan(58);
 
 -- ============================================================
 -- Fixture: tre utenti. Il trigger on_auth_user_created fa il resto.
@@ -479,6 +479,78 @@ select ok(
   (select username is null from public.profiles
     where id = '55555555-5555-5555-5555-555555555555'),
   'trigger: collisione username -> profilo con NULL (non fallisce)');
+
+-- ============================================================
+-- Requisito 15: creare un gruppo non deve piu' dare "solo gli
+-- amministratori possono farlo" a chi lo sta creando (0009_fix_group_
+-- creation_membership.sql). Prima di quella migrazione questo stesso
+-- insert falliva con 42501, perche' is_group_admin() non trova ancora
+-- nessuna riga finche' quella riga non e' stata inserita.
+-- ============================================================
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
+
+insert into public.groups (id, name, owner_id)
+values ('a0000000-0000-4000-8000-000000000002', 'Gruppo di prova rimozione',
+        '11111111-1111-1111-1111-111111111111');
+
+select lives_ok(
+  $q$ insert into public.group_members (group_id, user_id, role)
+      values ('a0000000-0000-4000-8000-000000000002',
+              '11111111-1111-1111-1111-111111111111', 'owner') $q$,
+  'requisito 15: chi crea il gruppo si auto-iscrive come owner, senza reset role');
+
+select ok(
+  public.is_group_admin('a0000000-0000-4000-8000-000000000002'),
+  'requisito 15: dopo l auto-iscrizione Alice e amministratrice del nuovo gruppo');
+
+-- ---------- Requisito 14: rimuovere un posto dal gruppo, solo l'admin se
+-- ci sono altri membri (0010_restrict_group_places_delete.sql) ----------
+reset role;
+insert into public.group_members (group_id, user_id, role)
+values ('a0000000-0000-4000-8000-000000000002',
+        '22222222-2222-2222-2222-222222222222', 'member');
+
+set role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
+
+insert into public.places (id, source, name, created_by)
+values ('b0000000-0000-4000-8000-000000000003', 'manual', 'Trattoria di Bob',
+        '22222222-2222-2222-2222-222222222222');
+
+select lives_ok(
+  $q$ insert into public.group_places (group_id, place_id, added_by)
+      values ('a0000000-0000-4000-8000-000000000002',
+              'b0000000-0000-4000-8000-000000000003',
+              '22222222-2222-2222-2222-222222222222') $q$,
+  'requisito 14 (fixture): Bob, semplice membro, aggiunge un posto al gruppo');
+
+-- Come per reviews_update (vedi sopra): la policy filtra la riga in USING,
+-- quindi il DELETE non solleva un errore, cancella zero righe. Va verificato
+-- il conteggio, non l'assenza di eccezione.
+with d as (
+  delete from public.group_places
+   where group_id = 'a0000000-0000-4000-8000-000000000002'
+     and place_id = 'b0000000-0000-4000-8000-000000000003'
+  returning 1
+)
+select is(
+  (select count(*) from d), 0::bigint,
+  'requisito 14: Bob non puo togliere il posto, anche se e stato lui ad aggiungerlo');
+
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
+
+with d as (
+  delete from public.group_places
+   where group_id = 'a0000000-0000-4000-8000-000000000002'
+     and place_id = 'b0000000-0000-4000-8000-000000000003'
+  returning 1
+)
+select is(
+  (select count(*) from d), 1::bigint,
+  'requisito 14: Alice, amministratrice del gruppo, puo togliere il posto');
 
 -- ============================================================
 -- Uscita dal gruppo: l'accesso ai dati si chiude subito

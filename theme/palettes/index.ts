@@ -93,6 +93,36 @@ function dark(bg: string, surface: string, raised: string, accent: Accent): Colo
 }
 
 export const PALETTES: Record<PaletteFamily, Palette> = {
+  // Carbone e' il primo in elenco (e la prima scelta proposta): e' il tema
+  // ad alto contrasto per accessibilita', in chiaro e in scuro, non solo in
+  // scuro come nella prima versione -- la preferenza chiaro/scuro/sistema
+  // dell'utente lo governa esattamente come tutti gli altri temi.
+  charcoal: {
+    family: 'charcoal',
+    label: 'Carbone',
+    light: {
+      ...light('#FFFFFF', '#FFFFFF', '#EDEDED', {
+        base: '#000000',
+        muted: '#D9D9D9',
+        contrast: '#FFFFFF',
+      }),
+      textPrimary: '#000000',
+      textSecondary: '#333333',
+      borderSubtle: '#B0B0B0',
+      borderStrong: '#000000',
+    },
+    dark: {
+      ...dark('#000000', '#121212', '#1E1E1E', {
+        base: '#FFFFFF',
+        muted: '#2A2A2A',
+        contrast: '#000000',
+      }),
+      textPrimary: '#FFFFFF',
+      textSecondary: '#C9C9C9',
+      borderSubtle: '#333333',
+      borderStrong: '#5A5A5A',
+    },
+  },
   sunset: {
     family: 'sunset',
     label: 'Sunset',
@@ -149,21 +179,38 @@ export const PALETTES: Record<PaletteFamily, Palette> = {
       contrast: '#170F16',
     }),
   },
-  charcoal: {
-    family: 'charcoal',
-    label: 'Carbone',
-    // Solo scuro: e' il tema alto contrasto per accessibilita.
-    light: null,
-    dark: {
-      ...dark('#000000', '#121212', '#1E1E1E', {
-        base: '#FFFFFF',
-        muted: '#2A2A2A',
-        contrast: '#000000',
+  pizza: {
+    family: 'pizza',
+    label: 'A tema',
+    // Pizzeria vera, non un accenno: il fondo e' il cartone della scatola
+    // (crema calda, non bianco asettico), le superfici sono la mozzarella,
+    // il rialzo e' la crosta dorata. Rosso pomodoro acceso come accento,
+    // verde basilico acceso come testo secondario. Bordi che richiamano
+    // crosta (dorato, sottile) e pomodoro (rosso, marcato) invece dei grigi
+    // neutri delle altre famiglie: e' quello che rende il tema "vivace" e
+    // non solo "con un accento colorato". I quattro criteri e la scala
+    // punteggi restano quelli comuni a tutti i temi (gia' verificati dal
+    // test di contrasto): non serviva toccarli per essere piu' pizzeria.
+    light: {
+      ...light('#FFF6DF', '#FFFFFF', '#FFE8AF', {
+        base: '#D2231C', // rosso pomodoro acceso
+        muted: '#FDE3D3',
+        contrast: '#FFFFFF',
       }),
-      textPrimary: '#FFFFFF',
-      textSecondary: '#C9C9C9',
-      borderSubtle: '#333333',
-      borderStrong: '#5A5A5A',
+      textSecondary: '#1E6B2E', // verde basilico acceso
+      borderSubtle: '#F0C36B', // crosta dorata, separatori leggeri
+      borderStrong: '#C2281F', // rosso pomodoro, separatori marcati
+      danger: '#8E2019',
+    },
+    dark: {
+      ...dark('#1B0F0D', '#2B1512', '#3D1C16', {
+        base: '#FF5A45', // rosso corallo acceso, leggibile sullo scuro
+        muted: '#4A211C',
+        contrast: '#1B0F0D',
+      }),
+      textSecondary: '#7FDB7A', // verde basilico chiaro e acceso
+      borderSubtle: '#5C3A22',
+      borderStrong: '#A8402E',
     },
   },
 };

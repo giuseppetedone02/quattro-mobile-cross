@@ -14,6 +14,7 @@ export {
   canDeleteGroup,
   canLeaveGroup,
   canManageMembers,
+  canRemovePlaceFromGroup,
   PERSONAL_GROUP_LOCKED,
   type GroupSummary,
   type GroupMemberWithProfile,

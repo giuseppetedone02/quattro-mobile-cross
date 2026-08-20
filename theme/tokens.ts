@@ -51,12 +51,13 @@ export type ColorTokens = {
 
 export type ThemeMode = 'light' | 'dark';
 
-export type PaletteFamily = 'sunset' | 'ocean' | 'forest' | 'plum' | 'charcoal';
+export type PaletteFamily = 'charcoal' | 'sunset' | 'ocean' | 'forest' | 'plum' | 'pizza';
 
 export type Palette = {
   family: PaletteFamily;
   label: string;
-  /** charcoal esiste solo in scuro (tema alto contrasto per accessibilita) */
+  /** null solo se una famiglia esistesse in una sola modalita': oggi tutte,
+   *  charcoal incluso (il tema ad alto contrasto), hanno chiaro e scuro. */
   light: ColorTokens | null;
   dark: ColorTokens;
 };

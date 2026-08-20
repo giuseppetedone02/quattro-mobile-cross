@@ -22,7 +22,7 @@
 -- handle_new_user: eseguito a ogni riga inserita in auth.users.
 --
 -- Fa tre cose in una transazione: crea il profilo, crea il gruppo personale
--- "I miei posti" con l'utente come owner, e aggancia gli inviti che erano
+-- "I miei gusti" con l'utente come owner, e aggancia gli inviti che erano
 -- stati emessi verso la sua email prima che si registrasse.
 --
 -- Il blocco exception NON e' decorativo: se lo username scelto in fase di
@@ -49,7 +49,7 @@ begin
   end;
 
   insert into public.groups (name, owner_id, is_personal)
-  values ('I miei posti', new.id, true)
+  values ('I miei gusti', new.id, true)
   returning id into v_group_id;
 
   insert into public.group_members (group_id, user_id, role)

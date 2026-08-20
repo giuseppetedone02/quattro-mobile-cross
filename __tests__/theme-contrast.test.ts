@@ -97,9 +97,11 @@ describe('buildTheme', () => {
     expect(buildTheme('ocean', 'light', true).mode).toBe('light');
     expect(buildTheme('ocean', 'dark', false).mode).toBe('dark');
   });
-  it('charcoal resta scuro anche se si chiede chiaro: esiste solo in scuro', () => {
-    expect(buildTheme('charcoal', 'light', false).mode).toBe('dark');
-    expect(buildTheme('charcoal', 'system', false).mode).toBe('dark');
+  it('charcoal (alto contrasto) segue la preferenza come tutti gli altri temi', () => {
+    expect(buildTheme('charcoal', 'light', false).mode).toBe('light');
+    expect(buildTheme('charcoal', 'dark', false).mode).toBe('dark');
+    expect(buildTheme('charcoal', 'system', true).mode).toBe('dark');
+    expect(buildTheme('charcoal', 'system', false).mode).toBe('light');
   });
   it('scoreColor satura ai bordi invece di restituire undefined', () => {
     const t = buildTheme('sunset', 'dark', true);

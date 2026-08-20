@@ -212,7 +212,9 @@ function GroupSelector({
         {groups.map((group) => (
           <Chip
             key={group.id}
-            label={group.isPersonal ? 'I miei posti' : group.name}
+            // Il nome vero, non un'etichetta fissa: il gruppo personale si
+            // puo' rinominare, e qui deve comparire il nome scelto.
+            label={group.name}
             icon={group.isPersonal ? 'user' : 'users'}
             selected={group.id === selectedId}
             onPress={() => onSelect(group.id)}

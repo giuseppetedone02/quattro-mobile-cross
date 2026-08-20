@@ -27,14 +27,14 @@ describe('serializzazione del tema sul profilo', () => {
     }
   });
 
-  it('copre tutte e cinque le famiglie', () => {
-    expect(PALETTE_FAMILIES).toHaveLength(5);
+  it('copre tutte e sei le famiglie', () => {
+    expect(PALETTE_FAMILIES).toHaveLength(6);
     expect(PALETTE_FAMILIES).toEqual(
-      expect.arrayContaining(['sunset', 'ocean', 'forest', 'plum', 'charcoal']),
+      expect.arrayContaining(['sunset', 'ocean', 'forest', 'plum', 'charcoal', 'pizza']),
     );
   });
 
-  it('conserva charcoal con preferenza chiaro (la modalita la forza buildTheme)', () => {
+  it('conserva charcoal con preferenza chiaro', () => {
     expect(parseTheme('charcoal:light')).toEqual({ family: 'charcoal', preference: 'light' });
   });
 

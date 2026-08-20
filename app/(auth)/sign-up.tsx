@@ -68,9 +68,11 @@ export default function SignUp() {
           error={emailError}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
           autoComplete="email"
           textContentType="emailAddress"
-          placeholder="tu@esempio.it"
+          placeholder="nome@dominio.it"
         />
 
         <TextField

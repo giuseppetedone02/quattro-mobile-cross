@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -7,9 +7,10 @@ import {
   Button, Card, Chip, CriterionBar, Diamond, EmptyState, ErrorState, LoadingState,
   ScoreBadge, Text,
 } from '@/components/ui';
-import { OfficialInfoCard, usePlace, usePlaceScores } from '@/features/places';
+import { OfficialInfoCard, usePlace, usePlaceScores, useRemovePlaceFromGroup } from '@/features/places';
 import { ReviewCard, useMyReview, useReviews } from '@/features/reviews';
 import { useSupabaseSession } from '@/features/auth/hooks/useSession';
+import { canRemovePlaceFromGroup } from '@/features/groups';
 import { useActiveGroupResolved } from '@/lib/useActiveGroupResolved';
 import { useSignedUrls } from '@/lib/useSignedUrls';
 import { BUCKETS, publicUrl } from '@/lib/photos';
@@ -34,6 +35,8 @@ export default function PlaceDetail() {
   const scores = usePlaceScores(groupId, placeId);
   const reviews = useReviews(groupId, placeId);
   const myReview = useMyReview(groupId, placeId, userId);
+  const removeFromGroup = useRemovePlaceFromGroup();
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const cover = useSignedUrls(BUCKETS.placePhotos, [place.data?.cover_photo_path]);
   const coverUri = place.data?.cover_photo_path
@@ -265,6 +268,29 @@ export default function PlaceDetail() {
                   }
                 />
               ))}
+            </View>
+          ) : null}
+
+          {active && canRemovePlaceFromGroup(active.memberCount, active.role) ? (
+            <View style={{ marginTop: theme.spacing[6], gap: theme.spacing[2] }}>
+              {removeError ? <ErrorState compact message={removeError} /> : null}
+              <Button
+                label="Rimuovi dal gruppo"
+                variant="danger"
+                icon="trash"
+                full
+                loading={removeFromGroup.isPending}
+                onPress={async () => {
+                  if (!groupId) return;
+                  setRemoveError(null);
+                  try {
+                    await removeFromGroup.mutateAsync({ groupId, placeId });
+                    router.back();
+                  } catch (e) {
+                    setRemoveError(friendlyError(e, 'places').message);
+                  }
+                }}
+              />
             </View>
           ) : null}
         </View>

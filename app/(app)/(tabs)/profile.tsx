@@ -122,8 +122,14 @@ export default function ProfileTab() {
               </View>
             </View>
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
-              <View style={{ alignItems: 'center' }}>
+            // Riga a tre colonne (spaziatore · username · matita) invece di
+            // un semplice row centrato: con solo due elementi la matita
+            // spostava il centro visivo dello username a sinistra rispetto
+            // all'avatar sopra. Lo spaziatore a sinistra, della stessa
+            // larghezza della matita, tiene lo username davvero centrato.
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+              <View style={{ width: 36 }} />
+              <View style={{ flex: 1, alignItems: 'center' }}>
                 <Text variant="heading">@{p?.username ?? '...'}</Text>
                 {p?.display_name ? (
                   <Text variant="caption" color="secondary">
@@ -162,12 +168,7 @@ export default function ProfileTab() {
         />
 
         <Card>
-          <View style={{ gap: theme.spacing[4] }}>
-            <Text variant="label" uppercase color="secondary">
-              Aspetto
-            </Text>
-            <ThemeGallery />
-          </View>
+          <ThemeGallery />
         </Card>
 
         <Button

@@ -39,7 +39,9 @@ const ThemeContext = createContext<Theme | null>(null);
 export function buildTheme(family: PaletteFamily, preference: ThemePreference, systemDark: boolean): Theme {
   const palette = PALETTES[family];
 
-  // charcoal esiste solo in scuro: la preferenza "chiaro" non lo puo' forzare.
+  // Ogni famiglia, charcoal incluso, ha sia chiaro sia scuro: qui restiamo
+  // generici (palette.light === null resterebbe comunque un fallback sicuro
+  // se una futura famiglia fosse di nuovo solo scura).
   const wantsDark = preference === 'system' ? systemDark : preference === 'dark';
   const mode: ThemeMode = palette.light === null || wantsDark ? 'dark' : 'light';
   const colors = mode === 'dark' ? palette.dark : (palette.light as ColorTokens);

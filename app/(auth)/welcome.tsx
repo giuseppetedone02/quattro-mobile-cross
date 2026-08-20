@@ -37,7 +37,7 @@ export default function Welcome() {
             Quattro
           </Text>
           <Text variant="body" color="secondary" align="center">
-            I posti dove hai mangiato, giudicati su quattro cose che contano.
+            I posti dove hai mangiato, giudicati sulle cose che contano.
             Da soli o con chi vuoi.
           </Text>
         </View>

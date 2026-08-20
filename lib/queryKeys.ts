@@ -28,5 +28,6 @@ export const qk = {
 
   /** I dati Google NON si persistono nella cache su disco: ToS + scadono. */
   google: (placeId: string) => ['google', placeId] as const,
-  googleSearch: (q: string) => ['google', 'search', q] as const,
+  googleSearch: (q: string, locality?: string) =>
+    ['google', 'search', q, locality ?? ''] as const,
 } as const;

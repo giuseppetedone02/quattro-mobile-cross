@@ -46,20 +46,26 @@ async function requireUserId(): Promise<string> {
   return id;
 }
 
-/** Messaggio unico: il gruppo personale non si rinomina, non si elimina, non si lascia. */
+/** Messaggio unico: il gruppo personale non si elimina, non si lascia (ma si rinomina). */
 export const PERSONAL_GROUP_LOCKED =
-  "Il gruppo personale non si puo' rinominare, eliminare o lasciare: e' sempre tuo.";
+  "Il gruppo personale non si puo' eliminare o lasciare: e' sempre tuo.";
 
 export function isPersonalGroup(group: Pick<Group, 'is_personal'> | null | undefined): boolean {
   return Boolean(group?.is_personal);
 }
 
-/** Solo owner e admin modificano un gruppo condiviso. */
+/**
+ * Il nome (e la descrizione/immagine) si possono sempre modificare: anche
+ * per il gruppo personale, di cui sei sempre l'unico membro e owner. Resta
+ * vietato solo crearne un secondo o eliminare/lasciare quell'unico (vedi
+ * canDeleteGroup e canLeaveGroup): la RLS lo impone a livello di database.
+ */
 export function canEditGroup(
   group: Pick<Group, 'is_personal'> | null | undefined,
   role: MemberRole | undefined,
 ): boolean {
-  if (!group || group.is_personal) return false;
+  if (!group) return false;
+  if (group.is_personal) return true;
   return role === 'owner' || role === 'admin';
 }
 
@@ -76,6 +82,21 @@ export function canLeaveGroup(group: Pick<Group, 'is_personal'> | null | undefin
 }
 
 export function canManageMembers(role: MemberRole | undefined): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+/**
+ * Togliere un posto dal gruppo (non dal database: resta condiviso con altri
+ * gruppi, vedi useRemovePlaceFromGroup). Se sei l'unico membro il gruppo e'
+ * di fatto solo tuo, quindi puoi farlo comunque; appena c'e' anche un altro
+ * membro la decisione va lasciata a chi amministra, altrimenti chiunque
+ * avesse aggiunto un posto potrebbe farlo sparire per tutti gli altri.
+ */
+export function canRemovePlaceFromGroup(
+  memberCount: number,
+  role: MemberRole | undefined,
+): boolean {
+  if (memberCount <= 1) return true;
   return role === 'owner' || role === 'admin';
 }
 

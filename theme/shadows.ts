@@ -46,9 +46,9 @@ export function elevationStyle(
   }
 
   const spec = {
-    1: { opacity: 0.06, radius: 6, dy: 2, native: 2 },
-    2: { opacity: 0.1, radius: 14, dy: 5, native: 5 },
-    3: { opacity: 0.14, radius: 26, dy: 10, native: 10 },
+    1: { opacity: 0.06, radius: 6, dy: 2 },
+    2: { opacity: 0.1, radius: 14, dy: 5 },
+    3: { opacity: 0.14, radius: 26, dy: 10 },
   }[level];
 
   return {
@@ -56,6 +56,12 @@ export function elevationStyle(
     shadowOpacity: spec.opacity,
     shadowRadius: spec.radius,
     shadowOffset: { width: 0, height: spec.dy },
-    elevation: spec.native,
+    // elevation (l'ombra nativa Android) ignora il borderRadius della vista
+    // e disegna un'ombra rettangolare: e' il "bordo quadrato dietro ogni
+    // card" diventato visibile ora che il canvas del tema pizzeria non e'
+    // piu' bianco su bianco come le altre famiglie. Le proprieta' shadow*
+    // sopra bastano: la New Architecture le rispetta anche su Android,
+    // seguendo il borderRadius invece di un rettangolo pieno.
+    elevation: 0,
   };
 }

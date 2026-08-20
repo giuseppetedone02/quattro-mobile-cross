@@ -15,6 +15,7 @@ export {
 export { SearchField, type SearchFieldProps } from './SearchField';
 export { Field, TextField, TextArea } from './Field';
 export { ThemePreview } from './ThemePreview';
+export { PickerModal, type PickerModalProps, type PickerOption } from './PickerModal';
 export { PhotoGrid, PhotoPicker } from './PhotoGrid';
 export {
   GroupPickerRow,

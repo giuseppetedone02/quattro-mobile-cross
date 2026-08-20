@@ -22,6 +22,9 @@ const ID = {
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: NAME[VARIANT],
+  // Icona generale (iOS + fallback): l'artwork ha uno sfondo bianco proprio,
+  // quindi va qui cosi' com'e' -- niente sfondo scuro sovrapposto.
+  icon: './assets/icon.png',
   slug: 'quattro',
   version: '0.1.0',
   orientation: 'portrait',
@@ -56,7 +59,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: ID[VARIANT],
     // edgeToEdgeEnabled e' stato rimosso dallo schema in SDK 55:
     // edge-to-edge e' sempre attivo su Android e la chiave non esiste piu'.
-    adaptiveIcon: { foregroundImage: './assets/icon-foreground.png', backgroundColor: '#1A1210' },
+    // Sfondo bianco, non piu' il marrone scuro del vecchio Diamante: i
+    // contorni del nuovo logo sono scuri e sparirebbero su un fondo scuro.
+    adaptiveIcon: { foregroundImage: './assets/icon-foreground.png', backgroundColor: '#FFFFFF' },
     permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
   },
 
@@ -95,7 +100,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     [
       'expo-splash-screen',
-      { image: './assets/splash-icon.png', backgroundColor: '#1A1210', imageWidth: 180 },
+      // imageWidth alzato da 180 a 260: lo splash ora porta anche la scritta
+      // "QUATTRO", che a 180px risulterebbe troppo piccola per essere letta.
+      { image: './assets/splash-icon.png', backgroundColor: '#FFFFFF', imageWidth: 260 },
     ],
   ],
 

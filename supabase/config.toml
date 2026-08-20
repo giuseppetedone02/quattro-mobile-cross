@@ -63,6 +63,10 @@ site_url = "quattro://"
 additional_redirect_urls = [
   "quattro://",
   "quattro://auth/callback",
+  # Mancava: senza questa voce il link "reimposta la password" (che punta a
+  # auth/reset, non auth/callback) viene scartato in silenzio esattamente
+  # come succedeva con la conferma email prima di allineare la Dashboard.
+  "quattro://auth/reset",
   "quattro://invite/*",
   "http://localhost:8081",
 ]

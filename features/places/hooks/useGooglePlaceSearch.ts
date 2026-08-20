@@ -12,6 +12,9 @@ import {
 export type GooglePlaceSearch = {
   query: string;
   setQuery: (q: string) => void;
+  /** Testo libero di localita' (citta', paese) per restringere la ricerca. */
+  locality: string;
+  setLocality: (l: string) => void;
   results: GooglePrediction[];
   isSearching: boolean;
   error: string | null;
@@ -36,6 +39,7 @@ export function useGooglePlaceSearch(near?: {
   longitude: number;
 }): GooglePlaceSearch {
   const [query, setQuery] = useState('');
+  const [locality, setLocality] = useState('');
   const [sessionToken, setSessionToken] = useState<string>(() => newSessionToken());
   const tokenRef = useRef(sessionToken);
 
@@ -44,17 +48,18 @@ export function useGooglePlaceSearch(near?: {
   }, [sessionToken]);
 
   const trimmed = query.trim();
+  const trimmedLocality = locality.trim();
   const enabled = trimmed.length >= MIN_QUERY_LENGTH;
 
   const search = useQuery({
-    queryKey: qk.googleSearch(trimmed),
+    queryKey: qk.googleSearch(trimmed, trimmedLocality),
     enabled,
     // I dati Google non si conservano: cache breve, solo per non ripetere la
     // stessa richiesta mentre l'utente cancella e riscrive una lettera.
     staleTime: 30_000,
     gcTime: 60_000,
     retry: false,
-    queryFn: () => searchPlaces(trimmed, tokenRef.current, near),
+    queryFn: () => searchPlaces(trimmed, tokenRef.current, near, trimmedLocality),
   });
 
   const resetSession = useCallback(() => {
@@ -64,6 +69,8 @@ export function useGooglePlaceSearch(near?: {
   return {
     query,
     setQuery,
+    locality,
+    setLocality,
     results: enabled ? (search.data ?? []) : [],
     isSearching: enabled && search.isFetching,
     error: search.error ? friendlyError(search.error).message : null,

@@ -44,6 +44,8 @@ export default function ForgotPassword() {
           error={emailError}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
           autoComplete="email"
         />
 

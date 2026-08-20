@@ -28,6 +28,19 @@ describe('clampScore', () => {
     expect(clampScore(Infinity)).toBe(10);
     expect(clampScore(-Infinity)).toBe(1);
   });
+  it('regressione: valori non-number non devono produrre NaN (crash nativo Android su Diamond)', () => {
+    // Number.isNaN(undefined) e' FALSE: senza la conversione esplicita in
+    // clampScore, un punteggio mancante o un numeric arrivato come stringa
+    // da PostgREST superava il controllo e Math.round/max/min propagavano
+    // NaN fino al path SVG del Diamante ("M NaN ..."), che su Android manda
+    // in crash il parser nativo react-native-svg con IllegalArgumentException.
+    expect(clampScore(undefined as unknown as number)).toBe(1);
+    expect(clampScore(null as unknown as number)).toBe(1);
+    expect(clampScore('7' as unknown as number)).toBe(7);
+    expect(clampScore('7.6' as unknown as number)).toBe(8);
+    expect(clampScore('' as unknown as number)).toBe(1);
+    expect(clampScore('abc' as unknown as number)).toBe(1);
+  });
 });
 
 describe('overallScore — deve coincidere con la colonna generata di Postgres', () => {
@@ -60,12 +73,19 @@ describe('diamondPoints — la geometria del Diamante', () => {
   it('restituisce quattro vertici', () => {
     expect(diamondPoints(s(5, 5, 5, 5), R)).toHaveLength(4);
   });
-  it('con tutti 10 i vertici toccano gli estremi degli assi', () => {
-    const [top, right, bottom, left] = diamondPoints(s(10, 10, 10, 10), R) as [any, any, any, any];
-    expect(top.x).toBeCloseTo(R, 5);   expect(top.y).toBeCloseTo(0, 5);
-    expect(right.x).toBeCloseTo(2 * R, 5); expect(right.y).toBeCloseTo(R, 5);
-    expect(bottom.x).toBeCloseTo(R, 5); expect(bottom.y).toBeCloseTo(2 * R, 5);
-    expect(left.x).toBeCloseTo(0, 5);  expect(left.y).toBeCloseTo(R, 5);
+  it('con tutti 10 i vertici toccano i quattro angoli del piatto quadrato', () => {
+    // Da rombo a piatto quadrato: i quattro vertici non sono piu' sui lati
+    // (in alto/a destra/in basso/a sinistra) ma sugli angoli, cosi' che a
+    // punteggi pari il poligono sia un quadrato dritto e non ruotato di 45°.
+    const [topRight, bottomRight, bottomLeft, topLeft] = diamondPoints(
+      s(10, 10, 10, 10),
+      R,
+    ) as [any, any, any, any];
+    const k = R / Math.SQRT2;
+    expect(topRight.x).toBeCloseTo(R + k, 5); expect(topRight.y).toBeCloseTo(R - k, 5);
+    expect(bottomRight.x).toBeCloseTo(R + k, 5); expect(bottomRight.y).toBeCloseTo(R + k, 5);
+    expect(bottomLeft.x).toBeCloseTo(R - k, 5); expect(bottomLeft.y).toBeCloseTo(R + k, 5);
+    expect(topLeft.x).toBeCloseTo(R - k, 5); expect(topLeft.y).toBeCloseTo(R - k, 5);
   });
   it('con tutti 1 la forma resta visibile e non collassa nel centro', () => {
     const pts = diamondPoints(s(1, 1, 1, 1), R);

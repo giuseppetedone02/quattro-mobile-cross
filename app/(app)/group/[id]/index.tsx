@@ -3,11 +3,11 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Header } from '@/components/layout';
 import {
-  Avatar, Button, Card, Chip, ErrorState, LoadingState, Text,
+  Avatar, Button, Card, Chip, ErrorState, IconButton, LoadingState, Text, TextField,
 } from '@/components/ui';
 import {
-  canDeleteGroup, canLeaveGroup, canManageMembers, useGroup, useGroupMembers,
-  useLeaveGroup, useDeleteGroup, useGroups, PERSONAL_GROUP_LOCKED,
+  canDeleteGroup, canEditGroup, canLeaveGroup, canManageMembers, useGroup, useGroupMembers,
+  useLeaveGroup, useDeleteGroup, useUpdateGroup, useGroups, PERSONAL_GROUP_LOCKED,
 } from '@/features/groups';
 import { useSentInvitations } from '@/features/invitations';
 import { useActiveGroup } from '@/lib/store';
@@ -28,9 +28,12 @@ export default function GroupDetail() {
   const groups = useGroups();
   const leave = useLeaveGroup();
   const remove = useDeleteGroup();
+  const rename = useUpdateGroup();
   const { setGroupId } = useActiveGroup();
 
   const [error, setError] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nextName, setNextName] = useState('');
 
   const summary = groups.data?.find((g) => g.group.id === groupId);
   const myRole = summary?.role;
@@ -61,6 +64,19 @@ export default function GroupDetail() {
   const canInvite = myRole ? canManageMembers(myRole) && !g.is_personal : false;
   const canLeave = canLeaveGroup(g);
   const canRemove = canDeleteGroup(g, myRole);
+  const canRename = canEditGroup(g, myRole);
+
+  async function saveName() {
+    setError(null);
+    const trimmed = nextName.trim();
+    if (!trimmed) return;
+    try {
+      await rename.mutateAsync({ groupId, name: trimmed });
+      setEditingName(false);
+    } catch (e) {
+      setError(friendlyError(e, 'groups').message);
+    }
+  }
 
   return (
     <Screen scroll>
@@ -77,7 +93,48 @@ export default function GroupDetail() {
               square
             />
             <View style={{ flex: 1, gap: theme.spacing[1] }}>
-              <Text variant="subheading">{g.name}</Text>
+              {editingName ? (
+                <View style={{ gap: theme.spacing[2] }}>
+                  <TextField
+                    value={nextName}
+                    onChangeText={setNextName}
+                    autoFocus
+                    placeholder="Nome del gruppo"
+                  />
+                  <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+                    <Button
+                      label="Salva"
+                      size="sm"
+                      disabled={nextName.trim().length === 0}
+                      loading={rename.isPending}
+                      onPress={() => void saveName()}
+                    />
+                    <Button
+                      label="Annulla"
+                      size="sm"
+                      variant="ghost"
+                      onPress={() => setEditingName(false)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
+                  <Text variant="subheading" style={{ flexShrink: 1 }}>
+                    {g.name}
+                  </Text>
+                  {canRename ? (
+                    <IconButton
+                      icon="edit"
+                      accessibilityLabel="Rinomina il gruppo"
+                      size={32}
+                      onPress={() => {
+                        setNextName(g.name);
+                        setEditingName(true);
+                      }}
+                    />
+                  ) : null}
+                </View>
+              )}
               <Text variant="caption" color="secondary">
                 {g.is_personal
                   ? 'Solo tuo'
