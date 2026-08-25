@@ -27,10 +27,10 @@ describe('serializzazione del tema sul profilo', () => {
     }
   });
 
-  it('copre tutte e sei le famiglie', () => {
-    expect(PALETTE_FAMILIES).toHaveLength(6);
+  it('copre tutte e cinque le famiglie', () => {
+    expect(PALETTE_FAMILIES).toHaveLength(5);
     expect(PALETTE_FAMILIES).toEqual(
-      expect.arrayContaining(['sunset', 'ocean', 'forest', 'plum', 'charcoal', 'pizza']),
+      expect.arrayContaining(['sunset', 'ocean', 'forest', 'plum', 'charcoal']),
     );
   });
 

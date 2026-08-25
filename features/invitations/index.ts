@@ -5,6 +5,12 @@ export {
   useInviteToGroup,
   useRespondToInvitation,
   useRevokeInvitation,
+  useGroupInviteLink,
+  useRegenerateGroupInviteLink,
+  useJoinGroupViaCode,
+  buildAppDeepLink,
+  buildJoinWebLink,
+  buildInviteShareMessage,
   useSearchPeople,
   canSearchPeople,
   looksLikeFullEmail,
@@ -18,3 +24,4 @@ export {
 
 export { InvitationCard, type InvitationCardProps } from './components/InvitationCard';
 export { PeopleSearch, type PeopleSearchProps } from './components/PeopleSearch';
+export { InviteLinkCard, type InviteLinkCardProps } from './components/InviteLinkCard';

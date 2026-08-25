@@ -56,7 +56,7 @@ create extension if not exists pgtap with schema extensions;
 begin;
 set local search_path to public, extensions, pg_temp;
 
-select plan(58);
+select plan(67);
 
 -- ============================================================
 -- Fixture: tre utenti. Il trigger on_auth_user_created fa il resto.
@@ -551,6 +551,95 @@ with d as (
 select is(
   (select count(*) from d), 1::bigint,
   'requisito 14: Alice, amministratrice del gruppo, puo togliere il posto');
+
+-- ============================================================
+-- Link/codice di invito per gruppo (get_or_create_group_invite_code,
+-- regenerate_group_invite_code, join_group_via_code)
+-- ============================================================
+
+-- ---------- Carla non e' amministratrice del gruppo di Alice: non puo'
+-- generare un codice ----------
+select set_config('request.jwt.claims',
+  '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', true);
+
+select throws_ok(
+  $q$ select public.get_or_create_group_invite_code('a0000000-0000-4000-8000-000000000001') $q$,
+  '42501', null,
+  'invite link: un non-admin non puo generare il codice');
+
+-- ---------- Alice, amministratrice, genera il codice ----------
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
+
+select set_config(
+  'quattro.invite_code',
+  public.get_or_create_group_invite_code('a0000000-0000-4000-8000-000000000001')::text,
+  true);
+
+select isnt(
+  current_setting('quattro.invite_code'), null::text,
+  'invite link: Alice genera un codice');
+
+-- ---------- Idempotente: una seconda chiamata restituisce lo stesso codice ----------
+select is(
+  public.get_or_create_group_invite_code('a0000000-0000-4000-8000-000000000001')::text,
+  current_setting('quattro.invite_code'),
+  'invite link: e idempotente, non ne genera un secondo');
+
+-- ---------- Nessun link per un gruppo personale ----------
+select throws_ok(
+  $q$ select public.get_or_create_group_invite_code(
+        (select id from public.groups
+          where owner_id = '11111111-1111-1111-1111-111111111111' and is_personal)) $q$,
+  '22023', null,
+  'invite link: non si genera un codice per un gruppo personale');
+
+-- ---------- Carla entra usando il codice ----------
+select set_config('request.jwt.claims',
+  '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', true);
+
+select public.join_group_via_code(current_setting('quattro.invite_code'));
+
+select ok(
+  public.is_group_member('a0000000-0000-4000-8000-000000000001'),
+  'invite link: Carla entra nel gruppo con il codice');
+
+-- ---------- Un codice inventato non funziona ----------
+select throws_ok(
+  $q$ select public.join_group_via_code('AAAAAAAA') $q$,
+  'P0002', null,
+  'invite link: un codice inesistente viene rifiutato');
+
+-- ---------- Bob, semplice membro, non puo rigenerare il codice ----------
+select set_config('request.jwt.claims',
+  '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
+
+select throws_ok(
+  $q$ select public.regenerate_group_invite_code('a0000000-0000-4000-8000-000000000001') $q$,
+  '42501', null,
+  'invite link: un membro non amministratore non puo rigenerare il codice');
+
+-- ---------- Alice rigenera: il vecchio codice smette di funzionare ----------
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
+
+select isnt(
+  public.regenerate_group_invite_code('a0000000-0000-4000-8000-000000000001')::text,
+  current_setting('quattro.invite_code'),
+  'invite link: la rigenerazione produce un codice diverso');
+
+reset role;
+insert into auth.users (id, email) values
+  ('66666666-6666-6666-6666-666666666666', 'elena@test.it');
+set role authenticated;
+
+select set_config('request.jwt.claims',
+  '{"sub":"66666666-6666-6666-6666-666666666666","role":"authenticated"}', true);
+
+select throws_ok(
+  $q$ select public.join_group_via_code(current_setting('quattro.invite_code')) $q$,
+  'P0002', null,
+  'invite link: il vecchio codice revocato non fa piu entrare nessuno');
 
 -- ============================================================
 -- Uscita dal gruppo: l'accesso ai dati si chiude subito

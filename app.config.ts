@@ -100,9 +100,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     [
       'expo-splash-screen',
-      // imageWidth alzato da 180 a 260: lo splash ora porta anche la scritta
-      // "QUATTRO", che a 180px risulterebbe troppo piccola per essere letta.
-      { image: './assets/splash-icon.png', backgroundColor: '#FFFFFF', imageWidth: 260 },
+      // imageWidth alzato da 260 a 320: a 260 il riquadro era piu' stretto
+      // del logo (fetta + posate + scritta "QUATTRO"), che quindi risultava
+      // tagliato ai margini. resizeMode 'contain' e' esplicito, cosi' il
+      // logo intero resta sempre visibile scalato dentro il riquadro,
+      // qualunque sia la larghezza dello schermo.
+      {
+        image: './assets/splash-icon.png',
+        backgroundColor: '#FFFFFF',
+        imageWidth: 320,
+        resizeMode: 'contain',
+      },
     ],
   ],
 

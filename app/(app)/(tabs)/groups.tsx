@@ -60,12 +60,19 @@ export default function GroupsTab() {
           <Text variant="title" accessibilityRole="header">
             Gruppi
           </Text>
-          <IconButton
-            icon="plus"
-            accessibilityLabel="Crea un gruppo"
-            variant="filled"
-            onPress={() => router.push('/group/new')}
-          />
+          <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+            <IconButton
+              icon="link"
+              accessibilityLabel="Ho un codice di invito"
+              onPress={() => router.push('/join')}
+            />
+            <IconButton
+              icon="plus"
+              accessibilityLabel="Crea un gruppo"
+              variant="filled"
+              onPress={() => router.push('/group/new')}
+            />
+          </View>
         </View>
 
         {/* Inviti ricevuti: sono il canale primario, perche' senza account

@@ -65,6 +65,8 @@ export type Database = {
           owner_id: string;
           is_personal: boolean;
           created_at: string;
+          /** Leggibile solo tramite le RPC di invito: nessuna select lo espone. */
+          invite_code: string | null;
         };
         Insert: {
           id?: string;
@@ -280,6 +282,18 @@ export type Database = {
           p_lng?: number | null;
         };
         Returns: Database['public']['Tables']['places']['Row'];
+      };
+      get_or_create_group_invite_code: {
+        Args: { p_group_id: string };
+        Returns: string;
+      };
+      regenerate_group_invite_code: {
+        Args: { p_group_id: string };
+        Returns: string;
+      };
+      join_group_via_code: {
+        Args: { p_code: string };
+        Returns: Database['public']['Tables']['groups']['Row'];
       };
     };
     Enums: {

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen, Header } from '@/components/layout';
 import { Card, ErrorState, Text } from '@/components/ui';
-import { PeopleSearch, useInviteToGroup } from '@/features/invitations';
+import { InviteLinkCard, PeopleSearch, useInviteToGroup } from '@/features/invitations';
 import { useGroup, useGroupMembers } from '@/features/groups';
 import { friendlyError } from '@/lib/errors';
 import { useTheme } from '@/theme';
@@ -59,6 +59,10 @@ export default function InviteToGroup() {
           invitingIdentifier={pending}
           alreadyMemberIds={(members.data ?? []).map((m) => m.userId)}
         />
+
+        {group.data ? (
+          <InviteLinkCard groupId={groupId} groupName={group.data.name} />
+        ) : null}
       </View>
     </Screen>
   );

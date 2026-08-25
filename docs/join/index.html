@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Invito a Quattro</title>
+<meta name="robots" content="noindex" />
+<style>
+  :root {
+    --bg: #fbf3ea;
+    --card: #ffffff;
+    --text: #2b2118;
+    --text-secondary: #7a6d5e;
+    --accent: #c1592f;
+    --accent-contrast: #ffffff;
+    --border: #ecdfd0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1712;
+      --card: #262019;
+      --text: #f3ebe1;
+      --text-secondary: #b3a390;
+      --accent: #e07a4d;
+      --accent-contrast: #1c1712;
+      --border: #3a3025;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { margin: 0 0 16px; color: var(--text-secondary); line-height: 1.5; font-size: 15px; }
+  .code {
+    font-family: "SF Mono", "Roboto Mono", Consolas, monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 4px 0 18px;
+  }
+  button, .btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); margin-bottom: 10px; }
+  .btn-secondary { background: transparent; color: var(--text); border: 1.5px solid var(--border); margin-bottom: 18px; }
+  .hint { font-size: 13px; margin-top: 4px; }
+  .manual { text-align: left; font-size: 13px; line-height: 1.6; }
+  .manual ol { margin: 6px 0 0; padding-left: 20px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="card" id="app">
+    <p>Caricamento...</p>
+  </div>
+
+  <script>
+    function qs(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function renderNoCode() {
+      document.getElementById('app').innerHTML = `
+        <div class="badge">Q</div>
+        <h1>Entra in un gruppo su Quattro</h1>
+        <p>Inserisci il codice di invito che hai ricevuto.</p>
+        <input type="text" id="codeInput" placeholder="Es. 7K4QXB2P" maxlength="8" autocapitalize="characters" autocomplete="off" autocorrect="off" />
+        <button class="btn-primary" id="goBtn">Continua</button>
+      `;
+      var input = document.getElementById('codeInput');
+      var go = function () {
+        var v = (input.value || '').trim();
+        if (!v) return;
+        var url = new URL(window.location.href);
+        url.searchParams.set('code', v.toUpperCase());
+        window.location.href = url.toString();
+      };
+      document.getElementById('goBtn').addEventListener('click', go);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+    }
+
+    function renderWithCode(code, name) {
+      var deepLink = 'quattro://join/' + encodeURIComponent(code);
+      var intro = name
+        ? 'Sei stato invitato nel gruppo <strong>' + escapeHtml(name) + '</strong> su Quattro.'
+        : 'Sei stato invitato in un gruppo su Quattro.';
+
+      document.getElementById('app').innerHTML = `
+        <div class="badge">Q</div>
+        <h1>Invito a Quattro</h1>
+        <p>${intro}</p>
+        <div class="code" id="codeBox">${escapeHtml(code)}</div>
+        <a class="btn btn-primary" id="openBtn" href="${deepLink}">Apri l app Quattro</a>
+        <button class="btn btn-secondary" id="copyBtn">Copia il codice</button>
+        <div class="manual">
+          <strong>Non hai ancora Quattro sul telefono?</strong>
+          <ol>
+            <li>Installa l app (chiedi il file a chi ti ha invitato: per ora non è ancora su uno store).</li>
+            <li>Apri Quattro e vai su "Ho un codice", nella scheda Gruppi.</li>
+            <li>Inserisci il codice qui sopra: <strong>${escapeHtml(code)}</strong></li>
+          </ol>
+        </div>
+      `;
+
+      // Se l'app e' gia' installata, questo tap la apre direttamente (il
+      // browser mostra il prompt di sistema "Apri in Quattro?"). Se non lo e',
+      // il tap non fa nulla di visibile: la pagina resta qui con le
+      // istruzioni manuali sotto, che e' esattamente il punto.
+      document.getElementById('copyBtn').addEventListener('click', function () {
+        var btn = document.getElementById('copyBtn');
+        function done() { btn.textContent = 'Copiato!'; setTimeout(function () { btn.textContent = 'Copia il codice'; }, 2000); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(done).catch(function () { window.prompt('Copia il codice:', code); });
+        } else {
+          window.prompt('Copia il codice:', code);
+        }
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var code = qs('code');
+    if (code) {
+      renderWithCode(code.trim(), qs('n'));
+    } else {
+      renderNoCode();
+    }
+  </script>
+</body>
+</html>

@@ -22,9 +22,7 @@ export type IconName =
   | 'map' | 'pin' | 'list' | 'users' | 'user' | 'mail' | 'camera' | 'image'
   | 'star' | 'palette' | 'logout' | 'google' | 'external' | 'warning'
   | 'info' | 'location' | 'service' | 'menu' | 'receipt' | 'move' | 'link'
-  // --- Tab bar del tema "A tema" (pizzeria): sostituiscono list/map/users/user
-  //     solo quando quel tema e' attivo, vedi app/(app)/(tabs)/_layout.tsx ---
-  | 'pizzaSlice' | 'pizzaPin' | 'pizzaBox' | 'chefHat';
+  | 'copy' | 'share';
 
 type Props = {
   name: IconName;
@@ -212,41 +210,20 @@ function paths(
       return <Path {...c} d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />;
     case 'link':
       return <Path {...c} d="M10 13a4.5 4.5 0 0 0 6.4 0l2.1-2.1a4.5 4.5 0 0 0-6.4-6.4L11 5.6M14 11a4.5 4.5 0 0 0-6.4 0L5.5 13.1a4.5 4.5 0 0 0 6.4 6.4L13 18.4" />;
-
-    // --- Icone del tema "A tema" (pizzeria), per la tab bar (§Icone
-    //     pizzeria): niente fill, stesso tratto delle altre venti sopra. ---
-    case 'pizzaSlice':
-      // Una fetta con la crosta arrotondata alla base e due pomodorini.
+    case 'copy':
       return (
         <>
-          <Path {...c} d="M12 4L4.5 18.5Q12 21.5 19.5 18.5L12 4Z" />
-          <Circle {...c} cx={10.3} cy={13} r={0.9} />
-          <Circle {...c} cx={13.7} cy={10.6} r={0.9} />
+          <Rect {...c} x={8.5} y={8.5} width={11} height={11} rx={2} />
+          <Path {...c} d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" />
         </>
       );
-    case 'pizzaPin':
-      // Il pin del punto sulla mappa, con dentro una fettina invece del punto.
+    case 'share':
       return (
         <>
-          <Path {...c} d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
-          <Path {...c} d="M12 6.6l-2.6 5h5.2l-2.6-5z" />
-        </>
-      );
-    case 'pizzaBox':
-      // Lo scatolone aperto: condividere una pizza e' condividere un gruppo.
-      return (
-        <>
-          <Path {...c} d="M3.5 10l1.6-4.5h13.8l1.6 4.5" />
-          <Path {...c} d="M4.5 10h15v9a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-9z" />
-          <Path {...c} d="M12 12.8l-2.6 4.7h5.2l-2.6-4.7z" />
-        </>
-      );
-    case 'chefHat':
-      // Il cappello da cuoco per il profilo: la tua cucina, il tuo gusto.
-      return (
-        <>
-          <Path {...c} d="M6 10a3.3 3.3 0 0 1 1.1-6.4A3.4 3.4 0 0 1 12 2.2a3.4 3.4 0 0 1 4.9 1.4A3.3 3.3 0 0 1 18 10" />
-          <Path {...c} d="M6 10v4.5M18 10v4.5M6 14.5h12v4a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-4z" />
+          <Circle {...c} cx={18} cy={6} r={2.4} />
+          <Circle {...c} cx={18} cy={18} r={2.4} />
+          <Circle {...c} cx={6} cy={12} r={2.4} />
+          <Path {...c} d="M8.1 10.8l7.8-3.6M8.1 13.2l7.8 3.6" />
         </>
       );
     default:

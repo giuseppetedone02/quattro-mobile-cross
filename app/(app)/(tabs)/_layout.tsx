@@ -39,28 +39,9 @@ function TabIcon({ name, focused, badge }: { name: IconName; focused: boolean; b
   );
 }
 
-/**
- * Le icone dei quattro tab di default (list/map/users/user) sono neutre in
- * tutti i temi. "A tema" (pizzeria) e' l'eccezione: sceglie di sostituirle
- * con icone a tema pizza invece di limitarsi a ricolorarle, cosi' il tema
- * si vede anche nella tab bar e non solo negli accenti. Se un giorno
- * un altro tema volesse fare lo stesso, questa mappa e' il punto in cui
- * aggiungerlo: nessun altra schermata deve sapere che esiste.
- */
-const PIZZA_TAB_ICONS: Record<'places' | 'map' | 'groups' | 'profile', IconName> = {
-  places: 'pizzaSlice',
-  map: 'pizzaPin',
-  groups: 'pizzaBox',
-  profile: 'chefHat',
-};
-
 export default function TabsLayout() {
   const theme = useTheme();
   const pendingInvites = useInvitationBadgeCount();
-  const isPizza = theme.family === 'pizza';
-
-  const iconFor = (tab: keyof typeof PIZZA_TAB_ICONS, fallback: IconName): IconName =>
-    isPizza ? PIZZA_TAB_ICONS[tab] : fallback;
 
   return (
     <Tabs
@@ -81,16 +62,14 @@ export default function TabsLayout() {
         name="places"
         options={{
           title: 'Posti',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name={iconFor('places', 'list')} focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="list" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
           title: 'Mappa',
-          tabBarIcon: ({ focused }) => <TabIcon name={iconFor('map', 'map')} focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -98,7 +77,7 @@ export default function TabsLayout() {
         options={{
           title: 'Gruppi',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={iconFor('groups', 'users')} focused={focused} badge={pendingInvites} />
+            <TabIcon name="users" focused={focused} badge={pendingInvites} />
           ),
           tabBarAccessibilityLabel:
             pendingInvites > 0
@@ -110,9 +89,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profilo',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name={iconFor('profile', 'user')} focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="user" focused={focused} />,
         }}
       />
     </Tabs>

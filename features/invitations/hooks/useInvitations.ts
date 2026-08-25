@@ -297,6 +297,112 @@ export function canSearchPeople(query: string): boolean {
   return query.trim().length >= PEOPLE_SEARCH_MIN_CHARS || looksLikeFullEmail(query);
 }
 
+/**
+ * Codice/link di invito del gruppo. Idempotente sul server: se il gruppo
+ * ha gia' un codice, la RPC lo restituisce senza generarne un secondo. Per
+ * questo si può richiamare a ogni apertura della schermata "Invita" senza
+ * preoccuparsi di sprecare codici o di doverne tenere traccia lato client.
+ */
+export function useGroupInviteLink(groupId: string | undefined) {
+  return useQuery({
+    queryKey: qk.inviteLink(groupId ?? 'none'),
+    enabled: Boolean(groupId),
+    // Il codice non cambia da solo: niente da rinfrescare in background finche'
+    // non lo si rigenera esplicitamente (vedi useRegenerateGroupInviteLink).
+    staleTime: Infinity,
+    queryFn: async (): Promise<string> => {
+      const { data, error } = await supabase.rpc('get_or_create_group_invite_code', {
+        p_group_id: groupId as string,
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/**
+ * Rigenera il codice: quello vecchio smette immediatamente di funzionare.
+ * Serve per "revocare" un link condiviso per errore o con la persona sbagliata.
+ */
+export function useRegenerateGroupInviteLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string): Promise<string> => {
+      const { data, error } = await supabase.rpc('regenerate_group_invite_code', {
+        p_group_id: groupId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onError: (e) => friendlyError(e, 'group_members'),
+    onSuccess: (code, groupId) => {
+      qc.setQueryData(qk.inviteLink(groupId), code);
+    },
+  });
+}
+
+/**
+ * Entrare in un gruppo tramite codice/link, invece che accettando un invito
+ * nominale. Usata sia dalla schermata di deep link (quattro://join/<code>)
+ * sia da un eventuale inserimento manuale del codice.
+ */
+export function useJoinGroupViaCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (code: string): Promise<Group> => {
+      const { data, error } = await supabase.rpc('join_group_via_code', {
+        p_code: code.trim(),
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      // Si entra in un gruppo nuovo: la lista dei gruppi cambia.
+      void qc.invalidateQueries({ queryKey: qk.groups() });
+    },
+  });
+}
+
+/**
+ * quattro://join/<code> — lo schema che l'app sa gestire direttamente (usato
+ * anche dagli inviti nominali). Funziona SOLO se chi lo apre ha gia' Quattro
+ * installata e lo apre da un punto che lo tratta come link (non incollato
+ * in una casella di ricerca): tra amici e' comodo, ma la maggior parte delle
+ * app di messaggistica non lo trasforma in un link cliccabile perche' non
+ * riconoscono schemi personalizzati oltre a http/https.
+ */
+export function buildAppDeepLink(code: string): string {
+  return `quattro://join/${code}`;
+}
+
+/**
+ * Pagina statica di fallback su GitHub Pages (nessun costo, nessun dominio
+ * proprio necessario -- la stessa scelta indicata nel piano per la pagina di
+ * fallback degli inviti). E' un link https vero: ogni app di messaggistica
+ * lo rende cliccabile, e la pagina stessa tenta poi l'handoff verso
+ * quattro://join/<code> per chi ha l'app, mostrando il codice in chiaro per
+ * chi deve ancora installarla. Questo e' il link da condividere con "una
+ * persona comune": buildAppDeepLink esiste solo per test diretti (adb, o
+ * dentro l'app stessa).
+ */
+const INVITE_WEB_BASE_URL = 'https://giuseppetedone02.github.io/quattro-mobile-cross/join/';
+
+export function buildJoinWebLink(code: string, groupName?: string): string {
+  const params = new URLSearchParams({ code });
+  if (groupName) params.set('n', groupName);
+  return `${INVITE_WEB_BASE_URL}?${params.toString()}`;
+}
+
+/** Testo predefinito per il pulsante "Condividi": un link https che chiunque
+ *  può aprire, con il codice ripetuto in chiaro come ultima spiaggia. */
+export function buildInviteShareMessage(groupName: string, code: string): string {
+  return (
+    `Ti invito nel gruppo «${groupName}» su Quattro!\n\n` +
+    `Apri questo link per entrare: ${buildJoinWebLink(code, groupName)}\n\n` +
+    `Se il link non apre l'app, usa il codice ${code} dalla schermata "Ho un codice".`
+  );
+}
+
 export function useSearchPeople(query: string) {
   const trimmed = query.trim();
   return useQuery({

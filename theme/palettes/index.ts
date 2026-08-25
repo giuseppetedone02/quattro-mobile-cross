@@ -179,40 +179,6 @@ export const PALETTES: Record<PaletteFamily, Palette> = {
       contrast: '#170F16',
     }),
   },
-  pizza: {
-    family: 'pizza',
-    label: 'A tema',
-    // Pizzeria vera, non un accenno: il fondo e' il cartone della scatola
-    // (crema calda, non bianco asettico), le superfici sono la mozzarella,
-    // il rialzo e' la crosta dorata. Rosso pomodoro acceso come accento,
-    // verde basilico acceso come testo secondario. Bordi che richiamano
-    // crosta (dorato, sottile) e pomodoro (rosso, marcato) invece dei grigi
-    // neutri delle altre famiglie: e' quello che rende il tema "vivace" e
-    // non solo "con un accento colorato". I quattro criteri e la scala
-    // punteggi restano quelli comuni a tutti i temi (gia' verificati dal
-    // test di contrasto): non serviva toccarli per essere piu' pizzeria.
-    light: {
-      ...light('#FFF6DF', '#FFFFFF', '#FFE8AF', {
-        base: '#D2231C', // rosso pomodoro acceso
-        muted: '#FDE3D3',
-        contrast: '#FFFFFF',
-      }),
-      textSecondary: '#1E6B2E', // verde basilico acceso
-      borderSubtle: '#F0C36B', // crosta dorata, separatori leggeri
-      borderStrong: '#C2281F', // rosso pomodoro, separatori marcati
-      danger: '#8E2019',
-    },
-    dark: {
-      ...dark('#1B0F0D', '#2B1512', '#3D1C16', {
-        base: '#FF5A45', // rosso corallo acceso, leggibile sullo scuro
-        muted: '#4A211C',
-        contrast: '#1B0F0D',
-      }),
-      textSecondary: '#7FDB7A', // verde basilico chiaro e acceso
-      borderSubtle: '#5C3A22',
-      borderStrong: '#A8402E',
-    },
-  },
 };
 
 export const PALETTE_FAMILIES = Object.keys(PALETTES) as PaletteFamily[];

@@ -12,6 +12,7 @@ export const qk = {
 
   invitesInbox: () => ['invites', 'inbox'] as const,
   invitesSent: (gid: string) => ['group', gid, 'invites'] as const,
+  inviteLink: (gid: string) => ['group', gid, 'invite-link'] as const,
 
   places: (gid: string) => ['group', gid, 'places'] as const,
   place: (id: string) => ['place', id] as const,
