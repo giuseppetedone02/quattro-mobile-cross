@@ -30,6 +30,16 @@ name: iOS unsigned IPA
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Tag di una Release Android esistente (es. v1.2.0) a cui allegare
+          anche questa IPA. Lascia vuoto per scaricarla solo come artefatto
+          del run: essendo non firmata, ogni utente la rifirma da se' con il
+          proprio Apple ID, quindi allegarla a una release non e'
+          indispensabile come lo e' per l'APK.
+        required: false
+        type: string
 
 jobs:
   build:
@@ -37,6 +47,10 @@ jobs:
     # macos-26 monta Xcode 26, richiesto da Expo SDK 57 / React Native 0.86.
     runs-on: macos-26
     timeout-minutes: 90
+    # Serve solo quando "tag" e' compilato: softprops/action-gh-release
+    # scrive con il GITHUB_TOKEN di default, in sola lettura senza questo.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -119,3 +133,15 @@ jobs:
           path: quattro-unsigned.ipa
           retention-days: 90
           if-no-files-found: error
+
+      # Solo se e' stato passato un tag: allega la IPA a quella Release,
+      # cosi' la pagina di installazione puo' linkarla con un URL stabile
+      # invece di rimandare alla pagina del run (che richiede il login).
+      # softprops/action-gh-release aggiunge un file a una release esistente
+      # senza toccare quelli gia' presenti (es. quattro.apk).
+      - name: Allega la IPA alla Release
+        if: ${{ inputs.tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: quattro-unsigned.ipa
