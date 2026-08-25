@@ -2,10 +2,187 @@
 <html lang="it">
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="refresh" content="0; url=join/" />
-<title>Quattro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Installa Quattro</title>
+<meta name="description" content="Scarica e installa l'app Quattro su Android o iOS." />
+<style>
+  :root {
+    --bg: #fbf3ea;
+    --card: #ffffff;
+    --text: #2b2118;
+    --text-secondary: #7a6d5e;
+    --accent: #c1592f;
+    --accent-contrast: #ffffff;
+    --border: #ecdfd0;
+    --warn-bg: #fdf0e6;
+    --warn-text: #8a4a1f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1712;
+      --card: #262019;
+      --text: #f3ebe1;
+      --text-secondary: #b3a390;
+      --accent: #e07a4d;
+      --accent-contrast: #1c1712;
+      --border: #3a3025;
+      --warn-bg: #2e2115;
+      --warn-text: #e3ac7c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px;
+  }
+  .page {
+    width: 100%;
+    max-width: 480px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .lead { margin: 0; color: var(--text-secondary); line-height: 1.5; font-size: 15px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 18px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .platform-note { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; }
+  a.btn, button.btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    margin-top: 10px;
+  }
+  .steps { font-size: 14px; line-height: 1.6; margin: 16px 0 0; padding-left: 20px; }
+  .steps li { margin-bottom: 6px; }
+  .warn {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 16px 0 0;
+  }
+  .footer-link { text-align: center; font-size: 13px; margin-top: 8px; }
+  .footer-link a { color: var(--accent); text-decoration: none; }
+</style>
 </head>
 <body>
-<p><a href="join/">Vai alla pagina di invito</a></p>
+  <div class="page">
+    <div class="hero">
+      <div class="badge">Q</div>
+      <h1>Installa Quattro</h1>
+      <p class="lead">
+        Quattro non e' su Play Store ne' su App Store: e' un progetto
+        personale, distribuito direttamente. Scegli il tuo telefono qui sotto.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🤖 Android</h2>
+      <p class="platform-note">
+        Un APK universale, da installare attivando "sorgenti sconosciute".
+        Nessun account richiesto.
+      </p>
+      <a class="btn btn-primary" href="https://github.com/giuseppetedone02/quattro-mobile-cross/releases/latest/download/quattro.apk">
+        Scarica l'APK
+      </a>
+      <ol class="steps">
+        <li>Apri il file scaricato dalle notifiche o da "File".</li>
+        <li>Se compare un avviso, tocca "Installa comunque" o vai su
+          Impostazioni &gt; Sicurezza (o "App") e attiva "Installa app da
+          sorgenti sconosciute" per il browser o l'app Files usata.</li>
+        <li>Conferma l'installazione: Quattro comparira' tra le app.</li>
+      </ol>
+      <div class="warn">
+        Se in futuro esce un aggiornamento, scaricalo dallo stesso link e
+        installalo sopra l'app esistente: funziona senza disinstallare nulla,
+        a patto di scaricarlo sempre da qui (una firma diversa non verrebbe
+        accettata come aggiornamento).
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🍎 iPhone / iPad</h2>
+      <p class="platform-note">
+        Senza un account Apple Developer a pagamento, l'unica strada e' una
+        IPA non firmata che ti firmi da solo con il tuo Apple ID gratuito,
+        tramite un firmatore come <strong>SideStore</strong> o
+        <strong>Sideloadly</strong>.
+      </p>
+      <a class="btn btn-primary" href="https://github.com/giuseppetedone02/quattro-mobile-cross/releases/latest/download/quattro-unsigned.ipa">
+        Scarica la IPA non firmata
+      </a>
+      <a class="btn btn-secondary" href="https://sidestore.io/">
+        Guida a SideStore →
+      </a>
+      <ol class="steps">
+        <li>Installa SideStore (richiede un computer solo la prima volta, per
+          avviare SideServer) oppure Sideloadly su un computer.</li>
+        <li>Firma e installa la IPA scaricata con il tuo Apple ID.</li>
+        <li>La prima volta vai su Impostazioni &gt; Generali &gt; VPN e
+          gestione dispositivo e "Fidati" del tuo Apple ID.</li>
+      </ol>
+      <div class="warn">
+        Con un Apple ID gratuito la firma dura <strong>7 giorni</strong>: dopo
+        l'app smette di aprirsi e va rifirmata (SideStore lo fa in automatico
+        se il telefono e' sulla stessa rete del computer con SideServer
+        attivo). Massimo 3 app sideloadate insieme. Niente notifiche push:
+        l'app non le usa per questo motivo.
+      </div>
+    </div>
+
+    <p class="footer-link">
+      Hai gia' un codice di invito? <a href="join/">Vai alla pagina di invito</a>
+    </p>
+  </div>
 </body>
 </html>

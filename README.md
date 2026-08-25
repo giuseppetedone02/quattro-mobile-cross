@@ -27,7 +27,10 @@ Va detto subito, perche' cambia le aspettative.
 - le sette migrazioni in `supabase/migrations/`, applicate in ordine su
   PostgreSQL senza errori;
 - i test unitari dei calcoli e del tema (`npx jest`);
-- la configurazione di build per le tre varianti (`app.config.ts`, `eas.json`).
+- la configurazione di build per le tre varianti (`app.config.ts`, `eas.json`);
+- l'invito via link/codice (RPC + RLS, schermata "Invita", deep link
+  `quattro://join/<codice>` e la pagina web di fallback su GitHub Pages,
+  `docs/join/`, per chi non ha ancora l'app).
 
 **Scritto ma non ancora esercitato contro i servizi reali:**
 
@@ -40,8 +43,6 @@ Va detto subito, perche' cambia le aspettative.
 
 **Ancora da fare:**
 
-- la pagina web di fallback per gli inviti (`INVITE_WEB_BASE_URL`): senza,
-  l'invito e' inutilizzabile per chi non ha ancora l'app;
 - `lib/database.types.ts` e' scritto a mano per far compilare il progetto prima
   del primo `supabase gen types`. Al primo `npm run db:types` verra' sostituito
   dal file generato: **fino a quel momento lo step di sincronia dei tipi in CI
@@ -298,14 +299,24 @@ piu' righe del dovuto.
 
 ## Distribuzione
 
-Non passa dagli store. Entrambe le strade producono un artefatto scaricabile
-dalla pagina del run su GitHub Actions.
+Non passa dagli store. La pagina pubblica di installazione e' `docs/index.html`
+(pubblicata su GitHub Pages, cartella `docs/`, ramo `master`): link diretti
+all'ultima Release per Android e per iOS, piu' le istruzioni per attivare
+"sorgenti sconosciute" o firmare con SideStore/Sideloadly.
 
 ### Android: APK universale
 
 Workflow `.github/workflows/android-apk.yml`, manuale o su tag `v*`. Profilo
 EAS `sideload`, che produce un APK unico (non un App Bundle) installabile
 attivando "installa da sorgenti sconosciute".
+
+Su un push di tag `v*` il workflow allega l'APK a una **Release GitHub**
+(`softprops/action-gh-release`), che a differenza di un artefatto di Actions
+non richiede il login per scaricarlo e resta a un URL stabile:
+`.../releases/latest/download/quattro.apk`, quello linkato dalla pagina di
+installazione. Sul `workflow_dispatch` manuale (utile per il profilo
+`preview`) resta solo l'artefatto del run, perche' non c'e' un tag da cui
+creare la release.
 
 **La keystore di release e' l'identita' dell'app, per sempre.** Fuori dal Play
 Store non esiste il Play App Signing che ne tenga una copia: Android accetta un
@@ -325,6 +336,12 @@ EAS Build **non puo'** produrre una IPA non firmata: i profili sono `store` e
 non gira su hardware. Quindi il workflow archivia con `xcodebuild` disattivando
 la firma e impacchetta `Payload/App.app` in uno zip rinominato `.ipa`. **Sei tu
 a firmarla**, con SideStore, AltStore o Sideloadly e il tuo Apple ID.
+
+Il workflow ha un input opzionale `tag`: se compilato con un tag di una
+Release Android esistente (es. `v1.2.0`), allega anche la IPA a quella stessa
+release invece di lasciarla solo come artefatto del run. Non e' obbligatorio
+come per l'APK, perche' la IPA non e' comunque installabile senza rifirmarla,
+ma tiene i due file scaricabili dallo stesso posto.
 
 Cosa comporta, e va detto agli utenti prima e non dopo:
 
@@ -349,6 +366,47 @@ garantisce che i client vecchi non scarichino un update incompatibile. Con il
 sideload questo ha un costo concreto: **un binario nuovo su iOS significa che
 ogni utente riscarica la IPA e la rifirma**. Vale la pena tenerlo presente
 prima di aggiungere una dipendenza nativa.
+
+### Verifica sviluppatore Android per l'installazione sideload
+
+Su dispositivi certificati Google Play, Android puo' bloccare o segnalare
+come rischiosa l'installazione di un APK che arriva da fuori Play Store se
+chi l'ha firmato non e' un developer verificato. Per un progetto personale
+come questo basta la fascia gratuita, via email, pensata per chi distribuisce
+a un numero limitato di persone (soglia nell'ordine di ~20 dispositivi): non
+serve il programma Play Console a pagamento, che e' un'altra cosa e serve
+solo per pubblicare sullo store. Registrati con lo stesso account Google che
+usi per il progetto (per coerenza con le chiavi API e Firebase, se aggiunte in
+futuro) e conserva le credenziali insieme al resto (vedi sezione precedente
+sulla keystore): se il sito o i requisiti sono cambiati rispetto a quanto
+descritto qui, verifica sulla pagina ufficiale di Android Developer
+Verification prima di procedere, perche' Google aggiorna periodicamente le
+soglie e il flusso di registrazione.
+
+### Secrets di GitHub Actions
+
+I workflow leggono le variabili da `secrets.*` (vedi `env:` in ciascun file
+`.github/workflows/*.yml`), non da `.env`: `.env` esiste solo per lo sviluppo
+locale. Da impostare, su GitHub o con la CLI (`gh secret set NOME
+--body "valore" --repo giuseppetedone02/quattro-mobile-cross`):
+
+| Secret | Da dove viene |
+| --- | --- |
+| `EXPO_TOKEN` | Expo > Account Settings > Access Tokens: crea un token, non e' la password dell'account |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase Dashboard > Settings > API, stesso valore di `.env` |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Dashboard > Settings > API, stesso valore di `.env` |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Google Cloud > Credenziali, client OAuth "Applicazione web" (punto 1 della sezione OAuth qui sopra) |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Google Cloud > Credenziali, client OAuth "iOS" (punto 2) |
+| `GOOGLE_MAPS_ANDROID_KEY` | Google Cloud > Credenziali, chiave API ristretta a Maps SDK for Android |
+| `GOOGLE_MAPS_IOS_KEY` | Google Cloud > Credenziali, chiave API ristretta a Maps SDK for iOS (usata solo dal workflow iOS) |
+| `GOOGLE_IOS_URL_SCHEME` | Reversed client id del client OAuth iOS, `com.googleusercontent.apps.<numero>` (punto 2) |
+| `EAS_PROJECT_ID` | `eas.json` non lo contiene: e' in `app.config.ts` sotto `extra.eas.projectId`, oppure `eas project:info` |
+
+**Non vanno mai qui**, nemmeno per comodita': `GOOGLE_PLACES_KEY` e
+`RESEND_API_KEY` restano solo secret delle Edge Function
+(`supabase secrets set ...`, vedi sopra), perche' un secret di GitHub Actions
+finisce comunque in variabili d'ambiente del runner e nessuna delle due chiavi
+serve a una build client.
 
 ## Trappole
 
