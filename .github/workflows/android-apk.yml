@@ -58,6 +58,25 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Il runner ubuntu-latest ha 7GB di RAM totali. Con le impostazioni di
+      # default il daemon Gradle e il compilatore Kotlin (KSP, usato da
+      # expo-updates) si dividono poca metaspace: su un progetto con questi
+      # moduli nativi (Reanimated compila C++ per piu' architetture in
+      # parallelo) va in OutOfMemoryError, di solito durante la primissima
+      # build senza cache. Il file utente (~/.gradle/gradle.properties) si
+      # applica PRIMA di quello generato da expo prebuild dentro android/, e
+      # senza modificare il codice del progetto. org.gradle.workers.max=2
+      # riduce quanti task girano insieme, cosa che pesa piu' della singola
+      # dimensione di heap sull'esaurire i 7GB disponibili.
+      - name: Configura memoria Gradle per il runner
+        run: |
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx4608m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError
+          org.gradle.workers.max=2
+          kotlin.daemon.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=768m
+          EOF
+
       # --local compila sul runner invece che sui server EAS: non consuma la
       # coda del piano gratuito e lascia l'artefatto sul disco del runner.
       # --non-interactive e' obbligatorio in CI: senza, EAS si blocca a
