@@ -110,10 +110,13 @@ export async function searchPlaces(
   locality?: string,
 ): Promise<GooglePrediction[]> {
   const trimmed = query.trim();
-  if (trimmed.length < MIN_QUERY_LENGTH) return [];
-
-  const trimmedLocality = locality?.trim();
-  const input = trimmedLocality ? `${trimmed} ${trimmedLocality}` : trimmed;
+  const trimmedLocality = locality?.trim() ?? '';
+  // Prima si scartava tutto se il solo NOME era troppo corto, anche quando
+  // la localita' da sola bastava a fare una ricerca sensata ("Bari",
+  // "Vicenza"...). Il controllo va fatto sull'input combinato che si manda
+  // davvero a Google, non solo sul nome.
+  const input = [trimmed, trimmedLocality].filter(Boolean).join(' ').trim();
+  if (input.length < MIN_QUERY_LENGTH) return [];
 
   // Nomi di campo che l'Edge Function places-search legge davvero (vedi
   // parseBody() li': "input", "lat"/"lng" piatti, non "query"/"near"

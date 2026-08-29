@@ -397,7 +397,7 @@ export function buildJoinWebLink(code: string, groupName?: string): string {
  *  può aprire, con il codice ripetuto in chiaro come ultima spiaggia. */
 export function buildInviteShareMessage(groupName: string, code: string): string {
   return (
-    `Ti invito nel gruppo «${groupName}» su Quattro!\n\n` +
+    `Ti invito nel gruppo «${groupName}» su BiteMark!\n\n` +
     `Apri questo link per entrare: ${buildJoinWebLink(code, groupName)}\n\n` +
     `Se il link non apre l'app, usa il codice ${code} dalla schermata "Ho un codice".`
   );

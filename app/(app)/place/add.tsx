@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Header } from '@/components/layout';
 import {
   Card, Chip, EmptyState, ErrorState, LoadingState, PressScale, SearchField, Text,
@@ -27,6 +27,11 @@ type Mode = 'google' | 'manual';
 export default function AddPlace() {
   const theme = useTheme();
   const router = useRouter();
+  // Arriva da un tap su un POI di Google Maps nella tab Mappa (vedi
+  // "Aggiungi posto" li'): stesso percorso della ricerca testuale, solo che
+  // il place_id e' gia' noto e si salta dritti alla scheda ufficiale, come
+  // se l'utente lo avesse cercato e scelto lui dalla barra di ricerca.
+  const { placeId: incomingPlaceId } = useLocalSearchParams<{ placeId?: string }>();
   const { groups, active } = useActiveGroupResolved();
 
   const [mode, setMode] = useState<Mode>('google');
@@ -57,6 +62,15 @@ export default function AddPlace() {
       setLoadingDetails(false);
     }
   }
+
+  // Precarica automaticamente il posto arrivato da un POI della mappa, una
+  // sola volta: senza il guard su `picked`/`loadingDetails` un secondo
+  // render (es. dopo "Cambia locale") ripeterebbe la stessa chiamata.
+  useEffect(() => {
+    if (!incomingPlaceId || picked || loadingDetails) return;
+    void choose(incomingPlaceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingPlaceId]);
 
   async function submit(values: PlaceFormValues) {
     setError(null);
@@ -128,9 +142,11 @@ export default function AddPlace() {
 
           {loadingDetails ? <LoadingState label="Carico la scheda..." /> : null}
 
-          {search.query.trim().length > 0 && search.query.trim().length < 3 ? (
+          {(search.query.trim().length > 0 || search.locality.trim().length > 0) &&
+          search.query.trim().length < 3 &&
+          search.locality.trim().length < 3 ? (
             <Text variant="caption" color="secondary">
-              Scrivi almeno tre caratteri.
+              Scrivi almeno tre caratteri, nel nome o nella localita.
             </Text>
           ) : null}
 
@@ -164,7 +180,8 @@ export default function AddPlace() {
                 </PressScale>
               ))}
             </View>
-          ) : search.query.trim().length >= 3 && !search.isSearching ? (
+          ) : (search.query.trim().length >= 3 || search.locality.trim().length >= 3) &&
+            !search.isSearching ? (
             <EmptyState
               icon="search"
               title="Nessun risultato"

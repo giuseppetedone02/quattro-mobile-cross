@@ -49,7 +49,15 @@ export function useGooglePlaceSearch(near?: {
 
   const trimmed = query.trim();
   const trimmedLocality = locality.trim();
-  const enabled = trimmed.length >= MIN_QUERY_LENGTH;
+  // Bug corretto: prima la ricerca si attivava SOLO se il nome del locale
+  // (query) raggiungeva la lunghezza minima, ignorando del tutto la
+  // localita'. Un utente che scriveva solo "Bari" senza nome del locale
+  // vedeva una ricerca che sembrava non partire mai -- perche' letteralmente
+  // non partiva. Ora basta che uno dei due campi, da solo o insieme
+  // all'altro, raggiunga la lunghezza minima: si puo' cercare per nome, per
+  // sola localita', o per entrambi insieme.
+  const enabled =
+    trimmed.length >= MIN_QUERY_LENGTH || trimmedLocality.length >= MIN_QUERY_LENGTH;
 
   const search = useQuery({
     queryKey: qk.googleSearch(trimmed, trimmedLocality),

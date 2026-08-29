@@ -51,7 +51,7 @@ export type ColorTokens = {
 
 export type ThemeMode = 'light' | 'dark';
 
-export type PaletteFamily = 'charcoal' | 'sunset' | 'ocean' | 'forest' | 'plum';
+export type PaletteFamily = 'charcoal' | 'sunset' | 'ocean' | 'forest' | 'plum' | 'trattoria';
 
 export type Palette = {
   family: PaletteFamily;

@@ -199,7 +199,15 @@ export function Diamond({
           </G>
         ) : null}
 
-        {/* Sagoma principale: la media del gruppo, riempita e tenue */}
+        {/* Sagoma principale: la media del gruppo, riempita e tenue.
+            strokeLinejoin="round" smussa gli angoli del contorno -- e' il
+            dettaglio che fa leggere il quadrilatero come un piatto quadrato
+            (angoli arrotondati, come una vera ceramica) invece che come una
+            figura geometrica spigolosa. Il fill resta colorato per criterio
+            di tema (non bianco fisso): sopra un fondo chiaro un piatto
+            davvero bianco sparirebbe, e il colore e' anche l'unico modo in
+            cui il Diamante comunica "quanto e' andata bene" a colpo
+            d'occhio, prima ancora di leggere i numeri. */}
         <AnimatedPath
           animatedProps={pathProps}
           fill={theme.colors.accentBase}
@@ -207,6 +215,7 @@ export function Diamond({
           stroke={theme.colors.accentBase}
           strokeWidth={scale === 'micro' ? 1.2 : 2}
           strokeOpacity={hasOverlay ? 0.5 : 1}
+          strokeLinejoin="round"
         />
 
         {/* Sovrapposizione: la tua recensione, solo contorno, colore pieno */}
@@ -217,6 +226,7 @@ export function Diamond({
             stroke={theme.colors.accentBase}
             strokeWidth={2.5}
             strokeDasharray={scale === 'hero' ? undefined : '4 3'}
+            strokeLinejoin="round"
           />
         ) : null}
       </Svg>

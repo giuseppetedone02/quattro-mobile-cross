@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Invito a Quattro</title>
+<title>Invito a BiteMark</title>
 <meta name="robots" content="noindex" />
 <style>
   :root {
@@ -117,7 +117,7 @@
     function renderNoCode() {
       document.getElementById('app').innerHTML = `
         <div class="badge">Q</div>
-        <h1>Entra in un gruppo su Quattro</h1>
+        <h1>Entra in un gruppo su BiteMark</h1>
         <p>Inserisci il codice di invito che hai ricevuto.</p>
         <input type="text" id="codeInput" placeholder="Es. 7K4QXB2P" maxlength="8" autocapitalize="characters" autocomplete="off" autocorrect="off" />
         <button class="btn-primary" id="goBtn">Continua</button>
@@ -137,28 +137,28 @@
     function renderWithCode(code, name) {
       var deepLink = 'quattro://join/' + encodeURIComponent(code);
       var intro = name
-        ? 'Sei stato invitato nel gruppo <strong>' + escapeHtml(name) + '</strong> su Quattro.'
-        : 'Sei stato invitato in un gruppo su Quattro.';
+        ? 'Sei stato invitato nel gruppo <strong>' + escapeHtml(name) + '</strong> su BiteMark.'
+        : 'Sei stato invitato in un gruppo su BiteMark.';
 
       document.getElementById('app').innerHTML = `
         <div class="badge">Q</div>
-        <h1>Invito a Quattro</h1>
+        <h1>Invito a BiteMark</h1>
         <p>${intro}</p>
         <div class="code" id="codeBox">${escapeHtml(code)}</div>
-        <a class="btn btn-primary" id="openBtn" href="${deepLink}">Apri l app Quattro</a>
+        <a class="btn btn-primary" id="openBtn" href="${deepLink}">Apri l app BiteMark</a>
         <button class="btn btn-secondary" id="copyBtn">Copia il codice</button>
         <div class="manual">
-          <strong>Non hai ancora Quattro sul telefono?</strong>
+          <strong>Non hai ancora BiteMark sul telefono?</strong>
           <ol>
             <li><a href="../">Installa l app</a> (Android o iPhone, nessuno store).</li>
-            <li>Apri Quattro e vai su "Ho un codice", nella scheda Gruppi.</li>
+            <li>Apri BiteMark e vai su "Ho un codice", nella scheda Gruppi.</li>
             <li>Inserisci il codice qui sopra: <strong>${escapeHtml(code)}</strong></li>
           </ol>
         </div>
       `;
 
       // Se l'app e' gia' installata, questo tap la apre direttamente (il
-      // browser mostra il prompt di sistema "Apri in Quattro?"). Se non lo e',
+      // browser mostra il prompt di sistema "Apri in BiteMark?"). Se non lo e',
       // il tap non fa nulla di visibile: la pagina resta qui con le
       // istruzioni manuali sotto, che e' esattamente il punto.
       document.getElementById('copyBtn').addEventListener('click', function () {

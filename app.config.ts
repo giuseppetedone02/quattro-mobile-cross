@@ -39,7 +39,11 @@ const withCiGradleMemory: ConfigPlugin = (config) =>
 type Variant = 'development' | 'preview' | 'sideload';
 const VARIANT = (process.env.APP_VARIANT ?? 'development') as Variant;
 
-const NAME = { development: 'Quattro (dev)', preview: 'Quattro (preview)', sideload: 'Quattro' };
+// Nome visualizzato all'utente (home screen, Expo Updates) -- SOLO UI.
+// Il nome interno del progetto (slug, bundle id, package, scheme quattro://,
+// chiavi di storage) resta 'quattro': cambiarlo comporterebbe reinstallazioni
+// pulite per tutti (nuovo keystore/OAuth/deep link), cosa non richiesta qui.
+const NAME = { development: 'BiteMark (dev)', preview: 'BiteMark (preview)', sideload: 'BiteMark' };
 const ID = {
   development: 'com.giuseppetedone.quattro.dev',
   preview: 'com.giuseppetedone.quattro.preview',
@@ -133,10 +137,22 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         // tagliato ai margini. resizeMode 'contain' e' esplicito, cosi' il
         // logo intero resta sempre visibile scalato dentro il riquadro,
         // qualunque sia la larghezza dello schermo.
+        //
+        // Il problema successivo era diverso e non si risolveva con
+        // imageWidth: su Android 12+ la Splash Screen API di sistema mostra
+        // l'icona dentro un cerchio (la "safe zone" garantita da qualunque
+        // maschera del launcher e' solo il ~66% del canvas dell'immagine).
+        // Il PNG originale riempiva il 69-76% del canvas, quindi la scritta
+        // "QUATTRO" e le punte della forchetta finivano tagliate dal cerchio
+        // su quei launcher. La correzione vera e' nell'asset stesso
+        // (assets/splash-icon.png e' stato rigenerato con l'artwork ridotto
+        // al 52% del canvas, con margine trasparente attorno): imageWidth
+        // qui e' salito a 380 per compensare, cosi' la dimensione VISIVA
+        // sullo splash legacy (Android <12 e iOS) resta la stessa di prima.
         {
           image: './assets/splash-icon.png',
           backgroundColor: '#FFFFFF',
-          imageWidth: 320,
+          imageWidth: 380,
           resizeMode: 'contain',
         },
       ],

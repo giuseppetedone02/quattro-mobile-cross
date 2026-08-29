@@ -113,7 +113,7 @@ export function InviteLinkCard({ groupId, groupName }: InviteLinkCardProps) {
 
           <Text variant="caption" color="secondary">
             Il link è una pagina web, cliccabile ovunque lo condividi: apre l app se e installata,
-            altrimenti mostra il codice. Se non ha ancora Quattro, puo' installare l app e poi
+            altrimenti mostra il codice. Se non ha ancora BiteMark, puo' installare l app e poi
             inserire il codice dalla schermata "Ho un codice".
           </Text>
 

@@ -34,7 +34,7 @@ export default function Welcome() {
 
         <View style={{ alignItems: 'center', gap: theme.spacing[2] }}>
           <Text variant="display" align="center">
-            Quattro
+            BiteMark
           </Text>
           <Text variant="body" color="secondary" align="center">
             I posti dove hai mangiato, giudicati sulle cose che contano.

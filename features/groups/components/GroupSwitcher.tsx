@@ -43,9 +43,14 @@ export function GroupSwitcher({ groups }: GroupSwitcherProps) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // NIENTE paddingHorizontal qui: chi usa <GroupSwitcher> (la tab Posti,
+        // la tab Mappa) lo mette gia' dentro un contenitore che ha il proprio
+        // paddingHorizontal: theme.spacing[4]. Aggiungerlo anche qui sommava i
+        // due inset (32px totali) e faceva partire le chip piu' a destra di
+        // titolo, barra di ricerca e card della lista (tutti fermi a 16px) --
+        // il disallineamento a sinistra segnalato in cima alla lista posti.
         contentContainerStyle={{
           gap: theme.spacing[2],
-          paddingHorizontal: theme.spacing[4],
           paddingVertical: theme.spacing[2],
         }}
       >

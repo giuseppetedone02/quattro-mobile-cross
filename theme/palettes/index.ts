@@ -179,6 +179,26 @@ export const PALETTES: Record<PaletteFamily, Palette> = {
       contrast: '#170F16',
     }),
   },
+  // "A tema": la tavolozza da trattoria/pizzeria di quartiere -- carta da
+  // forno color crema, rosso pomodoro come accento. Ispirata a una board di
+  // riferimenti di brand identity per pizzerie: niente giallo come colore
+  // principale (a differenza di molti di quei riferimenti), per non
+  // confondersi con la scala punteggi, che e' gia' l'unico posto dell'app
+  // dove il giallo ha un significato (un punteggio alto).
+  trattoria: {
+    family: 'trattoria',
+    label: 'A tema',
+    light: light('#F7EFDD', '#FFFFFF', '#EFE2C8', {
+      base: '#A5271D',
+      muted: '#F3DAD2',
+      contrast: '#FFFFFF',
+    }),
+    dark: dark('#1A1512', '#241C16', '#2E241C', {
+      base: '#E8967E',
+      muted: '#3D2018',
+      contrast: '#1A1512',
+    }),
+  },
 };
 
 export const PALETTE_FAMILIES = Object.keys(PALETTES) as PaletteFamily[];
