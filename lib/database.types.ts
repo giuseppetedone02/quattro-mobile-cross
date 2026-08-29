@@ -35,6 +35,9 @@ export type Database = {
           avatar_path: string | null;
           theme: string;
           onboarding_completed: boolean;
+          /** null = account attivo. Non-null = cancellazione richiesta, in
+           *  attesa dei 30 giorni di grace period (vedi 0015). */
+          deletion_requested_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +55,7 @@ export type Database = {
           avatar_path?: string | null;
           theme?: string;
           onboarding_completed?: boolean;
+          deletion_requested_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -294,6 +298,14 @@ export type Database = {
       join_group_via_code: {
         Args: { p_code: string };
         Returns: Database['public']['Tables']['groups']['Row'];
+      };
+      request_account_deletion: {
+        Args: Record<string, never>;
+        Returns: Database['public']['Tables']['profiles']['Row'];
+      };
+      cancel_account_deletion: {
+        Args: Record<string, never>;
+        Returns: Database['public']['Tables']['profiles']['Row'];
       };
     };
     Enums: {

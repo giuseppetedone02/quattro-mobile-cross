@@ -35,6 +35,7 @@ import {
   toErrorResponse,
   HttpError,
 } from '../_shared/auth.ts';
+import { consumeToken } from '../_shared/rateLimit.ts';
 
 /** Vedi punto 1 in testa al file: questa costante non diventa un parametro. */
 const FIELD_MASK = [
@@ -88,8 +89,7 @@ function normalise(raw: GoogleDetails, fallbackId: string): PlaceDetails {
     placeId: raw.id ?? fallbackId,
     displayName: raw.displayName?.text ?? null,
     formattedAddress: raw.formattedAddress ?? null,
-    location:
-      typeof lat === 'number' && typeof lng === 'number' ? { lat, lng } : null,
+    location: typeof lat === 'number' && typeof lng === 'number' ? { lat, lng } : null,
     rating: typeof raw.rating === 'number' ? raw.rating : null,
     userRatingCount: typeof raw.userRatingCount === 'number' ? raw.userRatingCount : null,
     priceLevel: raw.priceLevel ?? null,
@@ -125,17 +125,15 @@ async function readCache(placeId: string): Promise<GoogleDetails | null> {
 
 async function writeCache(placeId: string, payload: GoogleDetails): Promise<void> {
   const expiresAt = new Date(Date.now() + CACHE_TTL_HOURS * 3600 * 1000).toISOString();
-  const { error } = await serviceClient()
-    .from('google_place_cache')
-    .upsert(
-      {
-        google_place_id: placeId,
-        payload,
-        fetched_at: new Date().toISOString(),
-        expires_at: expiresAt,
-      },
-      { onConflict: 'google_place_id' },
-    );
+  const { error } = await serviceClient().from('google_place_cache').upsert(
+    {
+      google_place_id: placeId,
+      payload,
+      fetched_at: new Date().toISOString(),
+      expires_at: expiresAt,
+    },
+    { onConflict: 'google_place_id' },
+  );
   // Un errore di scrittura della cache non deve far fallire la richiesta:
   // peggiora le prestazioni, non il risultato.
   if (error) console.error('cache write', error.message);
@@ -176,11 +174,7 @@ async function fetchFromGoogle(placeId: string): Promise<GoogleDetails> {
  * la policy places_update a decidere se puo' toccare quella riga, invece di
  * riscrivere il controllo di accesso qui dentro.
  */
-async function refreshCoords(
-  jwt: string,
-  placeId: string,
-  details: PlaceDetails,
-): Promise<void> {
+async function refreshCoords(jwt: string, placeId: string, details: PlaceDetails): Promise<void> {
   if (!details.location) return;
 
   const { error } = await userClient(jwt)
@@ -213,6 +207,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const caller = await requireUser(req);
+
+    // Stesso profilo di places-search: la cache di 6 ore assorbe gia' la
+    // maggior parte del traffico ripetuto, questo bucket resta una rete di
+    // sicurezza contro un client che bombarda placeId sempre diversi.
+    if (
+      !consumeToken(caller.userId, { scope: 'places-details', capacity: 30, refillPerSecond: 0.5 })
+    ) {
+      throw new HttpError(429, 'Troppe richieste. Riprova fra qualche secondo.');
+    }
 
     const body = (await req.json().catch(() => ({}))) as {
       placeId?: unknown;

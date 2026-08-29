@@ -2,7 +2,21 @@ const expoConfig = require('eslint-config-expo/flat');
 
 module.exports = [
   ...expoConfig,
-  { ignores: ['node_modules/**', 'android/**', 'ios/**', '.expo/**', 'supabase/functions/**'] },
+  {
+    // .git e .idea non erano ignorati: su alcuni filesystem (es. una cartella
+    // montata da rete) la scansione ricorsiva di .git non finisce mai, ed e'
+    // il sospetto principale per cui "npx eslint ." non ha mai completato
+    // un'esecuzione in questo progetto.
+    ignores: [
+      'node_modules/**',
+      'android/**',
+      'ios/**',
+      '.expo/**',
+      'supabase/functions/**',
+      '.git/**',
+      '.idea/**',
+    ],
+  },
   {
     rules: {
       // I colori letterali sono vietati: tutto passa dai token del tema.
@@ -11,9 +25,8 @@ module.exports = [
       'no-restricted-syntax': [
         'error',
         {
-          selector: "Literal[value=/^#(?:[0-9a-fA-F]{3,4}){1,2}$/]",
-          message:
-            'Colore letterale vietato. Usa un token del tema: useTheme().colors.*',
+          selector: 'Literal[value=/^#(?:[0-9a-fA-F]{3,4}){1,2}$/]',
+          message: 'Colore letterale vietato. Usa un token del tema: useTheme().colors.*',
         },
       ],
     },

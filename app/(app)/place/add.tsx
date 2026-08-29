@@ -1,16 +1,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Screen, Header } from '@/components/layout';
 import {
-  Card, Chip, EmptyState, ErrorState, LoadingState, PressScale, SearchField, Text,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PressScale,
+  SearchField,
+  Text,
 } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import {
-  PlaceForm, getPlaceDetails, useAddPlace, useGooglePlaceSearch,
-  type GooglePlaceDetails, type PlaceFormValues,
+  PlaceForm,
+  fetchPlaces,
+  findSimilarPlace,
+  getPlaceDetails,
+  useAddPlace,
+  useGooglePlaceSearch,
+  type GooglePlaceDetails,
+  type PlaceListItem,
+  type PlaceFormValues,
 } from '@/features/places';
 import { useActiveGroupResolved } from '@/lib/useActiveGroupResolved';
+import { qk } from '@/lib/queryKeys';
 import { friendlyError } from '@/lib/errors';
 import { useTheme } from '@/theme';
 
@@ -33,17 +50,25 @@ export default function AddPlace() {
   // se l'utente lo avesse cercato e scelto lui dalla barra di ricerca.
   const { placeId: incomingPlaceId } = useLocalSearchParams<{ placeId?: string }>();
   const { groups, active } = useActiveGroupResolved();
+  const qc = useQueryClient();
 
   const [mode, setMode] = useState<Mode>('google');
   const [picked, setPicked] = useState<GooglePlaceDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  // Posto simile gia' nel gruppo (requisito 2.3): un avviso, non un blocco.
+  // pendingValues tiene i dati del form finche' l'utente non decide se
+  // salvare comunque o aprire quello trovato.
+  const [duplicate, setDuplicate] = useState<PlaceListItem | null>(null);
+  const [pendingValues, setPendingValues] = useState<PlaceFormValues | null>(null);
 
   const search = useGooglePlaceSearch();
   const addPlace = useAddPlace();
 
   const formGroups = useMemo(
-    () => groups.map((g) => ({ id: g.group.id, name: g.group.name, isPersonal: g.group.is_personal })),
+    () =>
+      groups.map((g) => ({ id: g.group.id, name: g.group.name, isPersonal: g.group.is_personal })),
     [groups],
   );
 
@@ -68,29 +93,85 @@ export default function AddPlace() {
   // render (es. dopo "Cambia locale") ripeterebbe la stessa chiamata.
   useEffect(() => {
     if (!incomingPlaceId || picked || loadingDetails) return;
-    void choose(incomingPlaceId);
+    // queueMicrotask sposta le setState di `choose` fuori dalla fase
+    // sincrona dell'effetto: chiamarle direttamente qui dentro (choose e'
+    // async ma aggiorna lo stato prima del primo await) e' cio' che
+    // react-hooks/set-state-in-effect segnala come cascata di render.
+    queueMicrotask(() => void choose(incomingPlaceId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingPlaceId]);
 
+  async function save(values: PlaceFormValues) {
+    await addPlace.mutateAsync({
+      groupId: values.groupId,
+      name: values.name,
+      address: values.address || null,
+      cuisine: values.cuisine || null,
+      notes: values.notes || null,
+      lat: values.lat,
+      lng: values.lng,
+      googlePlaceId: values.googlePlaceId,
+      source: values.source,
+      coverPhoto: values.coverPhoto,
+    });
+    router.back();
+  }
+
+  /**
+   * Prima del salvataggio, un controllo di similarita' sul gruppo scelto nel
+   * form (non necessariamente quello attivo, se l'utente lo ha cambiato):
+   * stesso nome e, quando le coordinate ci sono, entro 200 metri (vedi
+   * features/places/duplicates.ts). qc.fetchQuery invece di usePlaces perche'
+   * il gruppo non e' noto finche' non si preme "Salva".
+   */
   async function submit(values: PlaceFormValues) {
     setError(null);
+    setCheckingDuplicate(true);
     try {
-      await addPlace.mutateAsync({
-        groupId: values.groupId,
+      const places = await qc.fetchQuery({
+        queryKey: qk.places(values.groupId),
+        queryFn: () => fetchPlaces(values.groupId),
+      });
+      const found = findSimilarPlace(places, {
         name: values.name,
-        address: values.address || null,
-        cuisine: values.cuisine || null,
-        notes: values.notes || null,
         lat: values.lat,
         lng: values.lng,
-        googlePlaceId: values.googlePlaceId,
-        source: values.source,
-        coverPhoto: values.coverPhoto,
       });
-      router.back();
+      if (found) {
+        setDuplicate(found);
+        setPendingValues(values);
+        return;
+      }
+      await save(values);
+    } catch (e) {
+      setError(friendlyError(e, 'places').message);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }
+
+  function dismissDuplicate() {
+    setDuplicate(null);
+    setPendingValues(null);
+  }
+
+  async function saveAnyway() {
+    if (!pendingValues) return;
+    const values = pendingValues;
+    dismissDuplicate();
+    setError(null);
+    try {
+      await save(values);
     } catch (e) {
       setError(friendlyError(e, 'places').message);
     }
+  }
+
+  function openDuplicate() {
+    if (!duplicate) return;
+    const id = duplicate.place.id;
+    dismissDuplicate();
+    router.push(`/place/${id}`);
   }
 
   // Una volta scelto un posto da Google, o passando a mano, si va al form.
@@ -202,11 +283,35 @@ export default function AddPlace() {
         <View style={{ gap: theme.spacing[4] }}>
           {error ? <ErrorState compact message={error} /> : null}
 
+          {duplicate ? (
+            // Sopra il form, non al suo posto: il form resta montato con i
+            // dati che l'utente ha gia' scritto, nel caso scelga di
+            // correggerli invece di salvare o aprire il posto esistente.
+            <Card style={{ gap: theme.spacing[3] }}>
+              <Text variant="bodyStrong">
+                Esiste gia un posto simile in questo gruppo: {duplicate.place.name}
+              </Text>
+              <Text variant="caption" color="secondary">
+                Vuoi aprire quello invece di salvarne uno nuovo?
+              </Text>
+              <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+                <Button label="Apri quello" onPress={openDuplicate} />
+                <Button
+                  label="Salva comunque"
+                  variant="ghost"
+                  loading={addPlace.isPending}
+                  onPress={() => void saveAnyway()}
+                />
+                <Button label="Modifica" variant="ghost" onPress={dismissDuplicate} />
+              </View>
+            </Card>
+          ) : null}
+
           <PlaceForm
             groups={formGroups}
             defaultGroupId={active?.group.id ?? formGroups[0]?.id ?? ''}
             googleSource={picked}
-            submitting={addPlace.isPending}
+            submitting={addPlace.isPending || checkingDuplicate}
             onSubmit={(v) => void submit(v)}
             initial={
               picked

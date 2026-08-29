@@ -22,6 +22,7 @@ export const qk = {
   scores: (gid: string, pid: string) => ['group', gid, 'place', pid, 'scores'] as const,
 
   stats: (uid: string) => ['stats', uid] as const,
+  leaderboard: (gid: string) => ['group', gid, 'leaderboard'] as const,
 
   /** Ricerca persone da invitare: la query e' parte della chiave perche'
    *  ogni termine e' un risultato diverso e va messo in cache a se'. */
@@ -29,6 +30,5 @@ export const qk = {
 
   /** I dati Google NON si persistono nella cache su disco: ToS + scadono. */
   google: (placeId: string) => ['google', placeId] as const,
-  googleSearch: (q: string, locality?: string) =>
-    ['google', 'search', q, locality ?? ''] as const,
+  googleSearch: (q: string, locality?: string) => ['google', 'search', q, locality ?? ''] as const,
 } as const;

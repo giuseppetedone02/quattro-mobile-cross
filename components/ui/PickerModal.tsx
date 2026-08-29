@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/icons';
@@ -83,9 +83,7 @@ export function PickerModal<T extends string>({
                 >
                   {option.label}
                 </Text>
-                {selected ? (
-                  <Icon name="check" size={18} color={theme.colors.accentBase} />
-                ) : null}
+                {selected ? <Icon name="check" size={18} color={theme.colors.accentBase} /> : null}
               </PressScale>
             );
           })}

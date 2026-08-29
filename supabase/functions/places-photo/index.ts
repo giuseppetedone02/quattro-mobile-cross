@@ -27,6 +27,7 @@
 
 import { preflight, json, fail } from '../_shared/cors.ts';
 import { requireUser, toErrorResponse, HttpError } from '../_shared/auth.ts';
+import { consumeToken } from '../_shared/rateLimit.ts';
 
 const DEFAULT_MAX_WIDTH_PX = 800;
 const MIN_MAX_WIDTH_PX = 100;
@@ -63,7 +64,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ("Manca il photoName").
     if (req.method !== 'POST') throw new HttpError(405, 'Metodo non consentito.');
 
-    await requireUser(req);
+    const caller = await requireUser(req);
+
+    // Bucket piu' stretto delle altre due funzioni: e' l'unica SKU di
+    // Places API (New) non coperta dalla soglia gratuita mensile (vedi
+    // commento in cima a rateLimit.ts). 20 foto, poi una ogni 3 secondi:
+    // sufficiente per scorrere una galleria a mano, stretto per un ciclo
+    // impazzito che monta tutte le foto insieme.
+    if (
+      !consumeToken(caller.userId, { scope: 'places-photo', capacity: 20, refillPerSecond: 1 / 3 })
+    ) {
+      throw new HttpError(429, 'Troppe foto richieste. Riprova fra qualche secondo.');
+    }
 
     const raw = (await req.json().catch(() => ({}))) as {
       photoName?: unknown;

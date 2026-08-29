@@ -1,16 +1,18 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import MapView, {
-  Callout, Marker, PROVIDER_GOOGLE, type LatLng, type Region,
+  Callout,
+  Marker,
+  PROVIDER_GOOGLE,
+  type LatLng,
+  type Region,
 } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Card, Chip, EmptyState, IconButton, ScoreBadge, Text, PressScale,
-} from '@/components/ui';
+import { Card, Chip, EmptyState, IconButton, ScoreBadge, Text, PressScale } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { GroupSwitcher } from '@/features/groups';
-import { usePlaces, type PlaceListItem } from '@/features/places';
+import { cuisineOptionsFrom, usePlaces, type PlaceListItem } from '@/features/places';
 import { useActiveGroupResolved } from '@/lib/useActiveGroupResolved';
 import { formatScore } from '@/lib/format';
 import { useTheme } from '@/theme';
@@ -59,25 +61,19 @@ export default function MapTab() {
     [places.data],
   );
 
-  // Categorie derivate dai posti del gruppo attivo (il campo "cuisine" e'
-  // testo libero, non un enum: non c'e' un elenco fisso di tipi lato server,
-  // quindi il filtro propone quelle davvero presenti in questo gruppo,
-  // confrontate senza distinguere maiuscole/minuscole ma mostrate come le ha
-  // scritte la prima persona che le ha usate.
-  const cuisineOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const item of pinned) {
-      const raw = item.place.cuisine?.trim();
-      if (!raw) continue;
-      const key = raw.toLowerCase();
-      if (!seen.has(key)) seen.set(key, raw);
-    }
-    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
-  }, [pinned]);
+  // Categorie derivate dai posti pinnati del gruppo attivo (il campo
+  // "cuisine" e' testo libero, non un enum: non c'e' un elenco fisso di tipi
+  // lato server, quindi il filtro propone quelle davvero presenti fra i posti
+  // mostrabili sulla mappa). Stessa funzione usata da PlaceForm per
+  // l'autocomplete in fase di inserimento, li' pero' su tutti i posti del
+  // gruppo e non solo quelli con coordinate.
+  const cuisineOptions = useMemo(() => cuisineOptionsFrom(pinned), [pinned]);
 
   const filtered = useMemo(() => {
     if (!cuisineFilter) return pinned;
-    return pinned.filter((item) => (item.place.cuisine ?? '').trim().toLowerCase() === cuisineFilter);
+    return pinned.filter(
+      (item) => (item.place.cuisine ?? '').trim().toLowerCase() === cuisineFilter,
+    );
   }, [pinned, cuisineFilter]);
 
   const initialRegion = useMemo<Region>(() => {
@@ -155,7 +151,11 @@ export default function MapTab() {
         ))}
 
         {poi ? (
-          <Marker coordinate={poi.coordinate} title={poi.name} pinColor={theme.colors.criterionLocation}>
+          <Marker
+            coordinate={poi.coordinate}
+            title={poi.name}
+            pinColor={theme.colors.criterionLocation}
+          >
             <Callout tooltip>
               <View />
             </Callout>
@@ -187,13 +187,19 @@ export default function MapTab() {
               paddingHorizontal: theme.spacing[4],
             }}
           >
-            <Chip label="Tutti" selected={cuisineFilter === null} onPress={() => setCuisineFilter(null)} />
+            <Chip
+              label="Tutti"
+              selected={cuisineFilter === null}
+              onPress={() => setCuisineFilter(null)}
+            />
             {cuisineOptions.map((c) => (
               <Chip
                 key={c}
                 label={c}
                 selected={cuisineFilter === c.toLowerCase()}
-                onPress={() => setCuisineFilter(cuisineFilter === c.toLowerCase() ? null : c.toLowerCase())}
+                onPress={() =>
+                  setCuisineFilter(cuisineFilter === c.toLowerCase() ? null : c.toLowerCase())
+                }
               />
             ))}
           </View>

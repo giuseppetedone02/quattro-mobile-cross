@@ -433,3 +433,101 @@ export function useMyStats(userId: string | undefined) {
     },
   });
 }
+
+export type GroupLeaderboard = {
+  topReviewer: { author: ReviewAuthor; reviewCount: number } | null;
+  topPlace: { placeId: string; placeName: string; avgOverall: number; reviewCount: number } | null;
+};
+
+/** Mese di calendario in UTC: coerente e a costo zero, non serve altro per
+ *  una statistica "questo mese" a bassa posta in gioco come questa. */
+function startOfMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
+/**
+ * Classifica di gruppo (requisito 2.4): chi ha recensito di piu' e il posto
+ * con la media piu' alta, nel mese in corso, nel gruppo attivo. Stessa
+ * infrastruttura di useMyStats -- aggregazione lato client su un volume
+ * ridotto (le recensioni di un mese in un gruppo) -- query in piu', non una
+ * vista dedicata.
+ */
+export function useGroupLeaderboard(groupId: string | undefined) {
+  return useQuery({
+    queryKey: qk.leaderboard(groupId ?? 'none'),
+    enabled: Boolean(groupId),
+    queryFn: async (): Promise<GroupLeaderboard> => {
+      const monthStart = startOfMonthIso();
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('author_id, place_id, overall')
+        .eq('group_id', groupId as string)
+        .gte('created_at', monthStart);
+      if (error) throw error;
+
+      const rows = data ?? [];
+      if (rows.length === 0) return { topReviewer: null, topPlace: null };
+
+      const countByAuthor = new Map<string, number>();
+      const byPlace = new Map<string, { sum: number; count: number }>();
+      for (const row of rows) {
+        countByAuthor.set(row.author_id, (countByAuthor.get(row.author_id) ?? 0) + 1);
+        const agg = byPlace.get(row.place_id) ?? { sum: 0, count: 0 };
+        agg.sum += row.overall;
+        agg.count += 1;
+        byPlace.set(row.place_id, agg);
+      }
+
+      let topAuthorId: string | null = null;
+      let topAuthorCount = 0;
+      for (const [id, count] of countByAuthor) {
+        if (count > topAuthorCount) {
+          topAuthorId = id;
+          topAuthorCount = count;
+        }
+      }
+
+      let topPlaceId: string | null = null;
+      let topPlaceAvg = -Infinity;
+      let topPlaceCount = 0;
+      for (const [id, agg] of byPlace) {
+        const avg = agg.sum / agg.count;
+        if (avg > topPlaceAvg) {
+          topPlaceId = id;
+          topPlaceAvg = avg;
+          topPlaceCount = agg.count;
+        }
+      }
+
+      const [authorRes, placeRes] = await Promise.all([
+        topAuthorId
+          ? supabase.from('profiles').select(AUTHOR_COLUMNS).eq('id', topAuthorId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        topPlaceId
+          ? supabase.from('places').select('name').eq('id', topPlaceId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+      if (authorRes.error) throw authorRes.error;
+      if (placeRes.error) throw placeRes.error;
+
+      return {
+        topReviewer: topAuthorId
+          ? {
+              author: authorRes.data ?? unknownAuthor(topAuthorId),
+              reviewCount: topAuthorCount,
+            }
+          : null,
+        topPlace:
+          topPlaceId && placeRes.data
+            ? {
+                placeId: topPlaceId,
+                placeName: placeRes.data.name,
+                avgOverall: roundLikeDb(topPlaceAvg),
+                reviewCount: topPlaceCount,
+              }
+            : null,
+      };
+    },
+  });
+}

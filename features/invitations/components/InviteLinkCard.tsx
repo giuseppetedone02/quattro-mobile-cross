@@ -112,9 +112,9 @@ export function InviteLinkCard({ groupId, groupName }: InviteLinkCardProps) {
           </View>
 
           <Text variant="caption" color="secondary">
-            Il link è una pagina web, cliccabile ovunque lo condividi: apre l app se e installata,
-            altrimenti mostra il codice. Se non ha ancora BiteMark, puo' installare l app e poi
-            inserire il codice dalla schermata "Ho un codice".
+            Il link è una pagina web, cliccabile ovunque lo condividi: apre l&apos;app se e
+            installata, altrimenti mostra il codice. Se non ha ancora BiteMark, puo&apos; installare
+            l&apos;app e poi inserire il codice dalla schermata &quot;Ho un codice&quot;.
           </Text>
 
           <View style={{ flexDirection: 'row', gap: theme.spacing[3] }}>

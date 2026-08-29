@@ -191,3 +191,40 @@ export function useSyncThemeToProfile() {
 export function themeFromProfile(profile: Profile | null | undefined) {
   return parseTheme(profile?.theme);
 }
+
+/**
+ * Avvia la cancellazione dell'account (GDPR): grace period di 30 giorni,
+ * cancellazione definitiva via job pg_cron (vedi 0015). La RPC rifiuta con
+ * un messaggio leggibile se l'utente possiede un gruppo condiviso con altri
+ * membri, per non distruggerne i dati a loro insaputa.
+ */
+export function useRequestAccountDeletion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<Profile> => {
+      const { data, error } = await supabase.rpc('request_account_deletion');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (profile) => {
+      qc.setQueryData(qk.profile(profile.id), profile);
+    },
+    onError: (e) => friendlyError(e, 'profiles'),
+  });
+}
+
+/** Ripensamento entro i 30 giorni: azzera deletion_requested_at. */
+export function useCancelAccountDeletion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<Profile> => {
+      const { data, error } = await supabase.rpc('cancel_account_deletion');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (profile) => {
+      qc.setQueryData(qk.profile(profile.id), profile);
+    },
+    onError: (e) => friendlyError(e, 'profiles'),
+  });
+}

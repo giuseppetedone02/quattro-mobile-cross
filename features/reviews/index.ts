@@ -1,11 +1,13 @@
 export {
   useDeleteReview,
+  useGroupLeaderboard,
   useMoveReview,
   useMyReview,
   useMyStats,
   useReviews,
   useSubmitReview,
   type DeleteReviewInput,
+  type GroupLeaderboard,
   type MoveReviewInput,
   type MyStats,
   type ReviewAuthor,

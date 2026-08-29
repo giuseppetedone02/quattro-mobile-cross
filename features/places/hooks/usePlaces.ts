@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { qk } from '@/lib/queryKeys';
@@ -37,45 +38,76 @@ export function sortPlaceItems(items: PlaceListItem[]): PlaceListItem[] {
   });
 }
 
+/**
+ * Corpo della query di usePlaces, estratto per essere richiamabile anche
+ * fuori da un componente (vedi findSimilarPlace in add.tsx: il controllo
+ * duplicati interroga il gruppo scelto nel form, non necessariamente quello
+ * attivo, con qc.fetchQuery e la stessa query key di usePlaces).
+ */
+export async function fetchPlaces(groupId: string): Promise<PlaceListItem[]> {
+  const links = await supabase
+    .from('group_places')
+    .select('place_id, added_at')
+    .eq('group_id', groupId);
+  if (links.error) throw links.error;
+
+  const rows = links.data ?? [];
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.place_id);
+  const [placesRes, scoresRes] = await Promise.all([
+    supabase.from('places').select('*').in('id', ids),
+    supabase.from('v_place_scores').select('*').eq('group_id', groupId),
+  ]);
+  if (placesRes.error) throw placesRes.error;
+  if (scoresRes.error) throw scoresRes.error;
+
+  const scoresByPlace = new Map<string, PlaceScores>();
+  for (const row of scoresRes.data ?? []) {
+    if (row.place_id) scoresByPlace.set(row.place_id, row);
+  }
+  const addedAtByPlace = new Map(rows.map((r) => [r.place_id, r.added_at]));
+
+  const items: PlaceListItem[] = (placesRes.data ?? []).map((place) => ({
+    place,
+    scores: scoresByPlace.get(place.id) ?? null,
+    addedAt: addedAtByPlace.get(place.id) ?? place.created_at,
+  }));
+
+  return sortPlaceItems(items);
+}
+
 export function usePlaces(groupId: string | undefined) {
   return useQuery({
     queryKey: qk.places(groupId ?? 'none'),
     enabled: Boolean(groupId),
-    queryFn: async (): Promise<PlaceListItem[]> => {
-      const gid = groupId as string;
-
-      const links = await supabase
-        .from('group_places')
-        .select('place_id, added_at')
-        .eq('group_id', gid);
-      if (links.error) throw links.error;
-
-      const rows = links.data ?? [];
-      if (rows.length === 0) return [];
-
-      const ids = rows.map((r) => r.place_id);
-      const [placesRes, scoresRes] = await Promise.all([
-        supabase.from('places').select('*').in('id', ids),
-        supabase.from('v_place_scores').select('*').eq('group_id', gid),
-      ]);
-      if (placesRes.error) throw placesRes.error;
-      if (scoresRes.error) throw scoresRes.error;
-
-      const scoresByPlace = new Map<string, PlaceScores>();
-      for (const row of scoresRes.data ?? []) {
-        if (row.place_id) scoresByPlace.set(row.place_id, row);
-      }
-      const addedAtByPlace = new Map(rows.map((r) => [r.place_id, r.added_at]));
-
-      const items: PlaceListItem[] = (placesRes.data ?? []).map((place) => ({
-        place,
-        scores: scoresByPlace.get(place.id) ?? null,
-        addedAt: addedAtByPlace.get(place.id) ?? place.created_at,
-      }));
-
-      return sortPlaceItems(items);
-    },
+    queryFn: () => fetchPlaces(groupId as string),
   });
+}
+
+/**
+ * Valori distinti del campo libero "cuisine" fra una lista di posti, senza
+ * duplicati per maiuscole/minuscole ma mostrati come li ha scritti la prima
+ * persona che li ha usati. Estratta come funzione pura (non solo hook) perche'
+ * la mappa la applica a `pinned` (solo i posti con coordinate, gia' filtrati
+ * li'), mentre il form di inserimento la vuole su tutti i posti del gruppo:
+ * stessa logica, sorgenti diverse.
+ */
+export function cuisineOptionsFrom(items: { place: Pick<Place, 'cuisine'> }[]): string[] {
+  const seen = new Map<string, string>();
+  for (const item of items) {
+    const raw = item.place.cuisine?.trim();
+    if (!raw) continue;
+    const key = raw.toLowerCase();
+    if (!seen.has(key)) seen.set(key, raw);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
+}
+
+/** Le cucine gia' usate nel gruppo, per l'autocomplete del form di inserimento. */
+export function useCuisineOptions(groupId: string | undefined): string[] {
+  const places = usePlaces(groupId);
+  return useMemo(() => cuisineOptionsFrom(places.data ?? []), [places.data]);
 }
 
 export function usePlace(placeId: string | undefined) {

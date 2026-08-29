@@ -4,13 +4,26 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Screen, Header } from '@/components/layout';
 import {
-  Button, Card, Chip, CriterionBar, Diamond, EmptyState, ErrorState, LoadingState,
-  ScoreBadge, Text,
+  Button,
+  Card,
+  Chip,
+  CriterionBar,
+  Diamond,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  ScoreBadge,
+  Text,
 } from '@/components/ui';
-import { OfficialInfoCard, usePlace, usePlaceScores, useRemovePlaceFromGroup } from '@/features/places';
-import { ReviewCard, useMyReview, useReviews } from '@/features/reviews';
+import {
+  OfficialInfoCard,
+  usePlace,
+  usePlaceScores,
+  useRemovePlaceFromGroup,
+} from '@/features/places';
+import { ReviewCard, useDeleteReview, useMyReview, useReviews } from '@/features/reviews';
 import { useSupabaseSession } from '@/features/auth/hooks/useSession';
-import { canRemovePlaceFromGroup } from '@/features/groups';
+import { canManageMembers, canRemovePlaceFromGroup } from '@/features/groups';
 import { useActiveGroupResolved } from '@/lib/useActiveGroupResolved';
 import { useSignedUrls } from '@/lib/useSignedUrls';
 import { BUCKETS, publicUrl } from '@/lib/photos';
@@ -36,7 +49,10 @@ export default function PlaceDetail() {
   const reviews = useReviews(groupId, placeId);
   const myReview = useMyReview(groupId, placeId, userId);
   const removeFromGroup = useRemovePlaceFromGroup();
+  const deleteReview = useDeleteReview();
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [deleteReviewError, setDeleteReviewError] = useState<string | null>(null);
+  const canModerateReviews = canManageMembers(active?.role);
 
   const cover = useSignedUrls(BUCKETS.placePhotos, [place.data?.cover_photo_path]);
   const coverUri = place.data?.cover_photo_path
@@ -86,7 +102,9 @@ export default function PlaceDetail() {
       <Screen>
         <Header back />
         <ErrorState
-          message={place.error ? friendlyError(place.error, 'places').message : 'Posto non trovato.'}
+          message={
+            place.error ? friendlyError(place.error, 'places').message : 'Posto non trovato.'
+          }
           onRetry={() => void place.refetch()}
         />
       </Screen>
@@ -250,24 +268,44 @@ export default function PlaceDetail() {
               <Text variant="label" uppercase color="secondary">
                 Recensioni
               </Text>
-              {reviews.data.map((r) => (
-                <ReviewCard
-                  key={r.review.id}
-                  review={r.review}
-                  author={r.author}
-                  photos={r.photos}
-                  photoUrls={reviewPhotos.data ?? {}}
-                  avatarUri={publicUrl(BUCKETS.avatars, r.author.avatar_path)}
-                  isMine={r.author.id === userId}
-                  onEdit={() => router.push(`/place/${placeId}/review`)}
-                  onMove={() =>
-                    router.push({
-                      pathname: '/review/[id]/move',
-                      params: { id: r.review.id, placeId, from: groupId ?? '' },
-                    })
-                  }
-                />
-              ))}
+              {deleteReviewError ? <ErrorState compact message={deleteReviewError} /> : null}
+              {reviews.data.map((r) => {
+                const isMine = r.author.id === userId;
+                return (
+                  <ReviewCard
+                    key={r.review.id}
+                    review={r.review}
+                    author={r.author}
+                    photos={r.photos}
+                    photoUrls={reviewPhotos.data ?? {}}
+                    avatarUri={publicUrl(BUCKETS.avatars, r.author.avatar_path)}
+                    isMine={isMine}
+                    canModerate={!isMine && canModerateReviews}
+                    onEdit={() => router.push(`/place/${placeId}/review`)}
+                    onMove={() =>
+                      router.push({
+                        pathname: '/review/[id]/move',
+                        params: { id: r.review.id, placeId, from: groupId ?? '' },
+                      })
+                    }
+                    onDelete={() => {
+                      if (!groupId) return;
+                      setDeleteReviewError(null);
+                      deleteReview.mutate(
+                        {
+                          reviewId: r.review.id,
+                          groupId,
+                          placeId,
+                          authorId: r.author.id,
+                        },
+                        {
+                          onError: (e) => setDeleteReviewError(friendlyError(e, 'reviews').message),
+                        },
+                      );
+                    }}
+                  />
+                );
+              })}
             </View>
           ) : null}
 

@@ -10,3 +10,10 @@ ios/
 .DS_Store
 expo-env.d.ts
 coverage/
+
+# Stato locale generato da "supabase start"/"supabase functions serve":
+# .temp/ contiene le chiavi (service role, JWT secret) del solo stack Docker
+# locale in supabase/.temp/start-secrets/, e .branches/ i branch di preview.
+# Nessuno dei due va condiviso ne' committato.
+supabase/.temp/
+supabase/.branches/

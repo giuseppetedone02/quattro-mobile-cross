@@ -113,20 +113,29 @@ export async function searchPlaces(
   const trimmedLocality = locality?.trim() ?? '';
   // Prima si scartava tutto se il solo NOME era troppo corto, anche quando
   // la localita' da sola bastava a fare una ricerca sensata ("Bari",
-  // "Vicenza"...). Il controllo va fatto sull'input combinato che si manda
-  // davvero a Google, non solo sul nome.
-  const input = [trimmed, trimmedLocality].filter(Boolean).join(' ').trim();
-  if (input.length < MIN_QUERY_LENGTH) return [];
+  // "Vicenza"...). Il controllo va fatto considerando entrambi i campi, non
+  // solo il nome.
+  if (trimmed.length < MIN_QUERY_LENGTH && trimmedLocality.length < MIN_QUERY_LENGTH) return [];
 
   // Nomi di campo che l'Edge Function places-search legge davvero (vedi
   // parseBody() li': "input", "lat"/"lng" piatti, non "query"/"near"
   // annidato). Con i nomi sbagliati la funzione riceveva sempre input vuoto
   // e rispondeva {results: []} -- una ricerca silenziosamente sempre vuota,
   // indistinguibile a occhio da "nessun risultato".
+  //
+  // "locality" va mandata COME CAMPO SEPARATO, mai concatenata al nome in
+  // un'unica stringa: prima lo era ("nome localita'"), e Google Autocomplete
+  // la trattava come altro testo da far combaciare con l'inizio del NOME del
+  // locale, non come un'area geografica. Cercare solo "Bari" restituiva
+  // "Barista's" e "Barino" -- locali il cui nome comincia per "Bari",
+  // ovunque nel mondo. La Edge Function ora risolve la localita' in
+  // coordinate e la usa come filtro geografico vero (vedi il commento in
+  // cima a supabase/functions/places-search/index.ts).
   const raw = await invokeFunction<RawSearchResponse>('places-search', {
-    input,
+    input: trimmed,
     sessionToken,
     ...(near ? { lat: near.latitude, lng: near.longitude } : {}),
+    ...(trimmedLocality ? { locality: trimmedLocality } : {}),
   });
 
   return (raw.results ?? []).flatMap((result) => {

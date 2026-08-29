@@ -11,8 +11,11 @@ export {
 } from './api/googlePlaces';
 
 export {
+  cuisineOptionsFrom,
+  fetchPlaces,
   sortPlaceItems,
   useAddPlace,
+  useCuisineOptions,
   useGooglePlaceDetails,
   useLinkPlaceToGoogle,
   usePlace,
@@ -25,6 +28,13 @@ export {
   type PlaceListItem,
   type UpdatePlaceInput,
 } from './hooks/usePlaces';
+
+export {
+  findSimilarPlace,
+  haversineMeters,
+  DUPLICATE_DISTANCE_METERS,
+  type DuplicateCandidate,
+} from './duplicates';
 
 export { useGooglePlaceSearch, type GooglePlaceSearch } from './hooks/useGooglePlaceSearch';
 

@@ -23,8 +23,10 @@ export type ReviewCardProps = {
   /** storage_path -> URL firmato. Le foto senza URL non si mostrano. */
   photoUrls?: Record<string, string>;
   avatarUri?: string | null;
-  /** Solo per la propria recensione compaiono le azioni. */
+  /** Solo per la propria recensione compaiono Modifica/Sposta/Elimina. */
   isMine?: boolean;
+  /** Admin del gruppo: vede solo Elimina, anche su recensioni altrui. */
+  canModerate?: boolean;
   onEdit?: () => void;
   onMove?: () => void;
   onDelete?: () => void;
@@ -38,6 +40,7 @@ export function ReviewCard({
   photoUrls,
   avatarUri,
   isMine = false,
+  canModerate = false,
   onEdit,
   onMove,
   onDelete,
@@ -92,11 +95,15 @@ export function ReviewCard({
         <Diamond scores={scores} scale="micro" animated={false} />
         <ScoreBadge score={review.overall} size="sm" />
 
-        {isMine ? (
+        {isMine || canModerate ? (
           <IconButton
             icon="more"
             accessibilityLabel={
-              actionsOpen ? 'Chiudi le azioni sulla recensione' : 'Azioni sulla tua recensione'
+              actionsOpen
+                ? 'Chiudi le azioni sulla recensione'
+                : isMine
+                  ? 'Azioni sulla tua recensione'
+                  : 'Azioni di moderazione'
             }
             size={36}
             onPress={() => setActionsOpen((open) => !open)}
@@ -119,7 +126,7 @@ export function ReviewCard({
 
       {gridPhotos.length > 0 ? <PhotoGrid photos={gridPhotos} onPressPhoto={onPressPhoto} /> : null}
 
-      {isMine && actionsOpen ? (
+      {(isMine || canModerate) && actionsOpen ? (
         <View
           accessibilityLiveRegion="polite"
           style={{
@@ -131,10 +138,10 @@ export function ReviewCard({
             paddingTop: theme.spacing[3],
           }}
         >
-          {onEdit ? (
+          {isMine && onEdit ? (
             <Button label="Modifica" variant="ghost" size="sm" icon="edit" onPress={onEdit} />
           ) : null}
-          {onMove ? (
+          {isMine && onMove ? (
             <Button label="Sposta" variant="ghost" size="sm" icon="move" onPress={onMove} />
           ) : null}
           {onDelete ? (

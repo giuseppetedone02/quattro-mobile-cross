@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useTheme } from '@/theme';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui';
 import { pickPhotos } from '@/lib/photos';
 import { friendlyError } from '@/lib/errors';
+import { useCuisineOptions } from '@/features/places/hooks/usePlaces';
 import type { GooglePlaceDetails } from '@/features/places/api/googlePlaces';
 import {
   NOTES_MAX,
@@ -64,6 +65,19 @@ export function PlaceForm({
   }));
   const [errors, setErrors] = useState<PlaceFormErrors>({});
   const [photoError, setPhotoError] = useState<string | null>(null);
+
+  // Suggerimenti per il campo "cucina": i valori gia' usati nel gruppo
+  // selezionato, per ridurre i doppioni ovvi ("pizzeria"/"Pizzeria") senza
+  // trasformarlo in un elenco chiuso -- si puo' sempre scrivere un valore
+  // nuovo. Filtrati sul testo digitato ed esclude cio' che e' gia' scritto.
+  const cuisineOptions = useCuisineOptions(values.groupId);
+  const cuisineSuggestions = useMemo(() => {
+    const query = values.cuisine.trim().toLowerCase();
+    return cuisineOptions
+      .filter((c) => c.toLowerCase() !== query)
+      .filter((c) => !query || c.toLowerCase().includes(query))
+      .slice(0, 6);
+  }, [cuisineOptions, values.cuisine]);
 
   const patch = useCallback(
     <K extends keyof PlaceFormValues>(key: K, value: PlaceFormValues[K]) => {
@@ -129,14 +143,28 @@ export function PlaceForm({
         autoCapitalize="sentences"
       />
 
-      <TextField
-        label="Cucina"
-        value={values.cuisine}
-        onChangeText={(v) => patch('cuisine', v)}
-        error={errors.cuisine}
-        placeholder="Pizzeria, trattoria, sushi..."
-        autoCapitalize="sentences"
-      />
+      <View style={{ gap: theme.spacing[2] }}>
+        <TextField
+          label="Cucina"
+          value={values.cuisine}
+          onChangeText={(v) => patch('cuisine', v)}
+          error={errors.cuisine}
+          placeholder="Pizzeria, trattoria, sushi..."
+          autoCapitalize="sentences"
+        />
+        {cuisineSuggestions.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ gap: theme.spacing[2] }}
+          >
+            {cuisineSuggestions.map((c) => (
+              <Chip key={c} label={c} onPress={() => patch('cuisine', c)} />
+            ))}
+          </ScrollView>
+        ) : null}
+      </View>
 
       <TextArea
         label="Note"

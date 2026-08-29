@@ -2,6 +2,8 @@ export {
   useUpdateProfile,
   useUpdateUsername,
   useSyncThemeToProfile,
+  useRequestAccountDeletion,
+  useCancelAccountDeletion,
   themeFromProfile,
   type UpdateProfileInput,
   type SyncThemeInput,
@@ -22,3 +24,7 @@ export {
   type ProfileStats,
   type CriterionAverage,
 } from './components/StatsPanel';
+export {
+  GroupLeaderboardCard,
+  type GroupLeaderboardCardProps,
+} from './components/GroupLeaderboardCard';

@@ -16,11 +16,14 @@ const withCiGradleMemory: ConfigPlugin = (config) =>
   withGradleProperties(config, (config) => {
     const set = (key: string, value: string) => {
       config.modResults = config.modResults.filter(
-        (item) => !(item.type === 'property' && item.key === key)
+        (item) => !(item.type === 'property' && item.key === key),
       );
       config.modResults.push({ type: 'property', key, value });
     };
-    set('org.gradle.jvmargs', '-Xmx3072m -XX:MaxMetaspaceSize=768m -XX:+HeapDumpOnOutOfMemoryError');
+    set(
+      'org.gradle.jvmargs',
+      '-Xmx3072m -XX:MaxMetaspaceSize=768m -XX:+HeapDumpOnOutOfMemoryError',
+    );
     set('org.gradle.workers.max', '2');
     set('org.gradle.parallel', 'false');
     set('kotlin.daemon.jvmargs', '-Xmx1536m -XX:MaxMetaspaceSize=512m');
@@ -101,6 +104,17 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       'expo-router',
       'expo-secure-store',
       'expo-web-browser',
+      // Solo agganciare i simboli nativi (crash report leggibili) e caricare i
+      // sourcemap JS su sentry.io durante `eas build`/`expo run`. organization
+      // e project non sono segreti (sono slug pubblici, come EAS_PROJECT_ID
+      // qui sotto), quindi restano letterali invece che in .env. Senza
+      // SENTRY_AUTH_TOKEN nell'ambiente il plugin non fallisce la build: si
+      // limita a non caricare i sourcemap, quindi Sentry.init() nel codice
+      // resta l'unica cosa che serve per avere il crash reporting attivo.
+      [
+        '@sentry/react-native/expo',
+        { url: 'https://sentry.io/', organization: 'tedone', project: 'quattro-react-native' },
+      ],
       [
         'react-native-maps',
         {
@@ -114,7 +128,10 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       ],
       [
         '@react-native-google-signin/google-signin',
-        { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME ?? 'com.googleusercontent.apps.placeholder' },
+        {
+          iosUrlScheme:
+            process.env.GOOGLE_IOS_URL_SCHEME ?? 'com.googleusercontent.apps.placeholder',
+        },
       ],
       [
         'expo-build-properties',
