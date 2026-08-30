@@ -90,6 +90,11 @@ jobs:
           GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
           GOOGLE_IOS_URL_SCHEME: ${{ secrets.GOOGLE_IOS_URL_SCHEME }}
           EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
+          # Vedi ios-unsigned-ipa.yml per il perche': senza un vero
+          # SENTRY_AUTH_TOKEN il plugin Sentry puo' far fallire l'intera
+          # build nativa invece di limitarsi a saltare l'upload dei simboli.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DISABLE_AUTO_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN == '' && 'true' || 'false' }}
         run: |
           eas build \
             --platform android \

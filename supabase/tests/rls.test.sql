@@ -1,5 +1,5 @@
 -- ============================================================
--- Suite pgTAP: Row Level Security, vincoli, RPC.  62 asserzioni.
+-- Suite pgTAP: Row Level Security, vincoli, RPC.  67 asserzioni.
 --
 -- QUESTA SUITE E' BLOCCANTE IN CI. Non ha "continue-on-error".
 --
@@ -56,7 +56,7 @@ create extension if not exists pgtap with schema extensions;
 begin;
 set local search_path to public, extensions, pg_temp;
 
-select plan(62);
+select plan(67);
 
 -- ============================================================
 -- Fixture: tre utenti. Il trigger on_auth_user_created fa il resto.
@@ -405,9 +405,23 @@ values ('a0000000-0000-4000-8000-000000000001',
         'b0000000-0000-4000-8000-000000000002',
         '11111111-1111-1111-1111-111111111111');
 
--- Blocco plpgsql perche' cinque asserzioni interrogano il record restituito
--- da DUE sole chiamate alla RPC: ripeterla per ogni asserzione proverebbe
--- qualcosa di diverso da quello che interessa.
+-- Tabella temporanea invece di asserzioni "perform ok(...)" dentro il blocco
+-- plpgsql: un "perform" scarta il valore restituito, e pgTAP assegna
+-- comunque il numero di sequenza alla chiamata (lo consuma) senza pero'
+-- stampare la riga TAP corrispondente -- ogni asserzione successiva nel file
+-- si ritrova con un numero disallineato rispetto a quello che pg_prove si
+-- aspetta ("Tests out of sequence"). Trovato eseguendo la suite per la prima
+-- volta in CI. Qui si chiama la RPC una sola volta per fase e si salva il
+-- risultato, cosi' le asserzioni vere restano "select ok(...)" a livello
+-- superiore -- l'unica forma che pgTAP stampa davvero.
+create temp table t_sync_result (
+  phase text,
+  name text,
+  google_place_id text,
+  official_override_pending boolean,
+  address text
+);
+
 do $t$
 declare v_res public.places;
 begin
@@ -415,24 +429,35 @@ begin
   select * into v_res from public.link_place_to_google(
     'b0000000-0000-4000-8000-000000000002', 'ChIJtestBaffo', false,
     'Ristorante Il Baffo S.R.L.', 'Via Vera 9', 41.1, 16.8);
-
-  perform ok(v_res.name = 'Il Baffo',
-    'sync rifiutata: nome manuale conservato');
-  perform ok(v_res.google_place_id = 'ChIJtestBaffo',
-    'sync rifiutata: collegamento avvenuto comunque');
-  perform ok(v_res.official_override_pending,
-    'sync rifiutata: pulsante resta (override_pending = true)');
+  insert into t_sync_result
+  values ('rifiutata', v_res.name, v_res.google_place_id, v_res.official_override_pending, v_res.address);
 
   -- Poi accetta.
   select * into v_res from public.link_place_to_google(
     'b0000000-0000-4000-8000-000000000002', 'ChIJtestBaffo', true,
     'Ristorante Il Baffo S.R.L.', 'Via Vera 9', 41.1, 16.8);
-
-  perform ok(v_res.name = 'Ristorante Il Baffo S.R.L.' and v_res.address = 'Via Vera 9',
-    'sync accettata: dati ufficiali applicati');
-  perform ok(not v_res.official_override_pending,
-    'sync accettata: pulsante scompare (override_pending = false)');
+  insert into t_sync_result
+  values ('accettata', v_res.name, v_res.google_place_id, v_res.official_override_pending, v_res.address);
 end $t$;
+
+select ok(
+  (select name = 'Il Baffo' from t_sync_result where phase = 'rifiutata'),
+  'sync rifiutata: nome manuale conservato');
+select ok(
+  (select google_place_id = 'ChIJtestBaffo' from t_sync_result where phase = 'rifiutata'),
+  'sync rifiutata: collegamento avvenuto comunque');
+select ok(
+  (select official_override_pending from t_sync_result where phase = 'rifiutata'),
+  'sync rifiutata: pulsante resta (override_pending = true)');
+select ok(
+  (select name = 'Ristorante Il Baffo S.R.L.' and address = 'Via Vera 9'
+     from t_sync_result where phase = 'accettata'),
+  'sync accettata: dati ufficiali applicati');
+select ok(
+  (select not official_override_pending from t_sync_result where phase = 'accettata'),
+  'sync accettata: pulsante scompare (override_pending = false)');
+
+drop table t_sync_result;
 
 -- ============================================================
 -- Accesso con Google: nessuno username, poi claim_username

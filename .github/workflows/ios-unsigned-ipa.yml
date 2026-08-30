@@ -96,8 +96,22 @@ jobs:
       # CODE_SIGNING_ALLOWED=NO da solo non basta: alcuni target dei pod
       # leggono CODE_SIGNING_REQUIRED, e senza CODE_SIGN_IDENTITY="" xcodebuild
       # continua a cercare un certificato che sul runner non esiste.
+      #
+      # SENTRY_DISABLE_AUTO_UPLOAD: il plugin Sentry avvolge la fase "Bundle
+      # React Native code and images" con una chiamata a sentry-cli per
+      # caricare i sourcemap. Trovato eseguendo questo workflow per la prima
+      # volta: senza SENTRY_AUTH_TOKEN quella chiamata fallisce con "Auth
+      # token is required", e quel fallimento fa fallire l'INTERO archivio
+      # (non lo salta in silenzio come ci si aspetterebbe) -- vedi lo script
+      # sentry-xcode.sh in node_modules/@sentry/react-native/scripts, che
+      # documenta esplicitamente questa variabile come via d'uscita. Quando
+      # SENTRY_AUTH_TOKEN sara' impostato come secret, questa riga disabilita
+      # da sola l'upload (mai piu' necessaria una volta rimossa).
       - name: Archive senza firma
         working-directory: ios
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DISABLE_AUTO_UPLOAD: ${{ secrets.SENTRY_AUTH_TOKEN == '' && 'true' || 'false' }}
         run: |
           set -o pipefail
           xcodebuild archive \
@@ -112,7 +126,14 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS="" \
             ONLY_ACTIVE_ARCH=NO \
-            | xcpretty || xcodebuild -version
+            | xcpretty
+          # NIENTE "|| xcodebuild -version" qui: con "set -o pipefail" quel
+          # fallback catturava un fallimento REALE di xcodebuild e lo
+          # sostituiva con un comando innocuo che riesce sempre, facendo
+          # apparire il passo verde in CI anche quando l'archivio non veniva
+          # prodotto affatto -- e' esattamente cosi' che il problema di
+          # Sentry sopra e' rimasto silenzioso finche' non si e' guardato il
+          # log per esteso.
 
       # Una IPA e' uno zip con la .app dentro una cartella "Payload".
       # Nient'altro: nessun manifest, nessuna firma. Sono i firmatori
