@@ -313,7 +313,7 @@ attivando "installa da sorgenti sconosciute".
 Su un push di tag `v*` il workflow allega l'APK a una **Release GitHub**
 (`softprops/action-gh-release`), che a differenza di un artefatto di Actions
 non richiede il login per scaricarlo e resta a un URL stabile:
-`.../releases/latest/download/quattro.apk`, quello linkato dalla pagina di
+`.../releases/latest/download/bitemark.apk`, quello linkato dalla pagina di
 installazione. Sul `workflow_dispatch` manuale (utile per il profilo
 `preview`) resta solo l'artefatto del run, perche' non c'e' un tag da cui
 creare la release.

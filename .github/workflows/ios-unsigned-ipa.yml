@@ -145,13 +145,13 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pkg/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/pkg/Payload/"
           cd "$RUNNER_TEMP/pkg"
-          zip -qry "$GITHUB_WORKSPACE/quattro-unsigned.ipa" Payload
-          ls -lh "$GITHUB_WORKSPACE/quattro-unsigned.ipa"
+          zip -qry "$GITHUB_WORKSPACE/bitemark-unsigned.ipa" Payload
+          ls -lh "$GITHUB_WORKSPACE/bitemark-unsigned.ipa"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: quattro-ios-unsigned-ipa
-          path: quattro-unsigned.ipa
+          name: bitemark-ios-unsigned-ipa
+          path: bitemark-unsigned.ipa
           retention-days: 90
           if-no-files-found: error
 
@@ -159,10 +159,10 @@ jobs:
       # cosi' la pagina di installazione puo' linkarla con un URL stabile
       # invece di rimandare alla pagina del run (che richiede il login).
       # softprops/action-gh-release aggiunge un file a una release esistente
-      # senza toccare quelli gia' presenti (es. quattro.apk).
+      # senza toccare quelli gia' presenti (es. bitemark.apk).
       - name: Allega la IPA alla Release
         if: ${{ inputs.tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          files: quattro-unsigned.ipa
+          files: bitemark-unsigned.ipa

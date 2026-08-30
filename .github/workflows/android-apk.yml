@@ -101,14 +101,14 @@ jobs:
             --profile "${{ inputs.profile || 'sideload' }}" \
             --local \
             --non-interactive \
-            --output "${{ github.workspace }}/quattro.apk"
+            --output "${{ github.workspace }}/bitemark.apk"
 
       # L'APK e' un artefatto: si scarica dalla pagina del run e si installa
       # sul telefono. Nessuna pubblicazione automatica.
       - uses: actions/upload-artifact@v4
         with:
-          name: quattro-android-apk
-          path: quattro.apk
+          name: bitemark-android-apk
+          path: bitemark.apk
           # 90 giorni e' il massimo su repository pubblici.
           retention-days: 90
           if-no-files-found: error
@@ -116,7 +116,7 @@ jobs:
       # Un artefatto di Actions richiede il login a GitHub anche su
       # repository pubblici: inutile per chi deve solo installare l'app.
       # Una Release e' anonima e ha un URL stabile che non cambia mai,
-      # "releases/latest/download/quattro.apk": e' il link che usa
+      # "releases/latest/download/bitemark.apk": e' il link che usa
       # docs/index.html. Gira solo sui tag "v*", non su workflow_dispatch,
       # perche' una build manuale (es. profilo "preview") non e' una release
       # pubblica.
@@ -124,7 +124,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: quattro.apk
+          files: bitemark.apk
           # generate_release_notes usa i commit dal tag precedente: comodo,
           # e non richiede di scrivere le note a mano ad ogni tag.
           generate_release_notes: true
