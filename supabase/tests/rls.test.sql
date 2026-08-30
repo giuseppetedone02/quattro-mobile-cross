@@ -1,5 +1,5 @@
 -- ============================================================
--- Suite pgTAP: Row Level Security, vincoli, RPC.  53 asserzioni.
+-- Suite pgTAP: Row Level Security, vincoli, RPC.  62 asserzioni.
 --
 -- QUESTA SUITE E' BLOCCANTE IN CI. Non ha "continue-on-error".
 --
@@ -56,7 +56,7 @@ create extension if not exists pgtap with schema extensions;
 begin;
 set local search_path to public, extensions, pg_temp;
 
-select plan(67);
+select plan(62);
 
 -- ============================================================
 -- Fixture: tre utenti. Il trigger on_auth_user_created fa il resto.
